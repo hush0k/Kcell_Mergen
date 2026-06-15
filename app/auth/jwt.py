@@ -1,8 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
-import jwt
 from jwt import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,15 +25,15 @@ class AuthService:
         """
 
         expire = datetime.now(UTC) + timedelta(
-            minutes=settings.access_token_expire_minutes
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
         payload = TokenPayload(
             sub=str(user_id), exp=int(expire.timestamp()), type="access"
         )
         return jwt.encode(
             payload.model_dump(),
-            settings.jwt_secret_key,
-            algorithm=settings.jwt_algorithm,
+            settings.SECRET_KEY,
+            algorithm=settings.ALGORITHM,
         )
 
     def create_refresh_token(self, user_id: int) -> str:
@@ -44,15 +44,15 @@ class AuthService:
         """
 
         expire = datetime.now(UTC) + timedelta(
-            minutes=settings.refresh_token_expire_minutes # 100 лет в минутах
+            minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES  # 100 лет в минутах
         )
         payload = TokenPayload(
             sub=str(user_id), exp=int(expire.timestamp()), type="refresh"
         )
         return jwt.encode(
             payload.model_dump(),
-            settings.jwt_secret_key,
-            algorithm=settings.jwt_algorithm,
+            settings.SECRET_KEY,
+            algorithm=settings.ALGORITHM,
         )
 
     def verify_token(self, token: str, token_type: str) -> TokenPayload | None:
@@ -65,7 +65,7 @@ class AuthService:
 
         try:
             payload = jwt.decode(
-                token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
+                token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
             token_data = TokenPayload(**payload)
 

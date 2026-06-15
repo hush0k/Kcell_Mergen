@@ -1,8 +1,8 @@
-from datetime import datetime
 import re
+from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.user.enums import UserRoles
 
@@ -28,6 +28,7 @@ class UserBase(BaseModel):
     username: Annotated[str, Field(min_length=3, max_length=63)]
     role: UserRoles
 
+
 class UserCreate(UserBase):
     password: Annotated[str, Field(min_length=8, max_length=100)]
 
@@ -36,11 +37,15 @@ class UserCreate(UserBase):
     def validate_password(cls, v: str) -> str:
         return validate_strong_password(v)
 
+
 class UserUpdate(BaseModel):
     username: Annotated[str, Field(min_length=3, max_length=63)] | None = None
+    role: UserRoles
+
 
 class UserUpdateRole(BaseModel):
     role: UserRoles = UserRoles.USER
+
 
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
@@ -63,7 +68,7 @@ class UserUpdatePassword(BaseModel):
         return validate_strong_password(v)
 
     @model_validator(mode="after")
-    def validate_passwords_match(self) -> "UserUpdatePassword":
+    def validate_passwords_match(self) -> UserUpdatePassword:
         if self.new_password != self.repeat_new_password:
             raise ValueError("Пароли не совпадают")
         return self

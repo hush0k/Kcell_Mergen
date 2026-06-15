@@ -15,22 +15,6 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 100 * 12 * 30 * 24 * 60  # 100 лет в минутах
 
     @property
-    def jwt_secret_key(self) -> str:
-        return self.SECRET_KEY
-
-    @property
-    def jwt_algorithm(self) -> str:
-        return self.ALGORITHM
-
-    @property
-    def jwt_access_token_expire_minutes(self) -> int:
-        return self.ACCESS_TOKEN_EXPIRE_MINUTES
-
-    @property
-    def jwt_refresh_token_expire_minutes(self) -> int:
-        return self.REFRESH_TOKEN_EXPIRE_MINUTES
-
-    @property
     def database_url(self) -> str:
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"

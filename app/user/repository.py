@@ -1,9 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.security import hash_password
 from app.user.model import User
-from app.user.schemas import UserCreate, UserUpdate
+from app.user.schemas import UserUpdate
 
 
 class UserRepository:

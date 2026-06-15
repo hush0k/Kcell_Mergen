@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.security import verify_password, hash_password
+from app.auth.security import hash_password, verify_password
 from app.user.enums import UserRoles
 from app.user.model import User
 from app.user.repository import UserRepository
@@ -20,7 +20,9 @@ class UserService:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+            )
         return user
 
     async def get_user_by_username(self, username: str) -> User:
@@ -31,7 +33,9 @@ class UserService:
         """
         user = await self.repo.get_by_username(username)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+            )
         return user
 
     async def get_all_users(self) -> list[User]:
@@ -49,7 +53,10 @@ class UserService:
         """
         user = await self.repo.get_by_username(user_in.username)
         if user:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Пользователь с таким username уже существует")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Пользователь с таким username уже существует",
+            )
 
         user = User(
             **user_in.model_dump(exclude={"password"}),
@@ -66,7 +73,9 @@ class UserService:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+            )
         return await self.repo.update(user, user_in)
 
     async def delete_user(self, user_id: int) -> None:
@@ -77,10 +86,14 @@ class UserService:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+            )
         await self.repo.delete(user)
 
-    async def change_password(self, user_id: int, passwords: UserUpdatePassword) -> None:
+    async def change_password(
+        self, user_id: int, passwords: UserUpdatePassword
+    ) -> None:
         """
         Меняет пароль пользователя после проверки старого пароля.
         :param user_id:
@@ -89,9 +102,13 @@ class UserService:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+            )
         if not verify_password(passwords.old_password, user.hashed_password):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный старый пароль")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный старый пароль"
+            )
         user.hashed_password = hash_password(passwords.new_password)
         await self.repo.save_user(user)
 
@@ -103,5 +120,7 @@ class UserService:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+            )
         return user.role == UserRoles.ADMIN

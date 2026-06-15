@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, func
-from sqlalchemy.orm import declarative_mixin, declared_attr, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, declarative_mixin, declared_attr, mapped_column
 
 
 @declarative_mixin
