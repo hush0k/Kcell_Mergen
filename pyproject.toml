@@ -21,6 +21,34 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=2.1.0",
     "pytest>=9.1.0",
     "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.17",
 ]
+
+# Настройки линтера ruff
+# Для проверки uv run ruff check .
+# Для автофикса uv run ruff check . --fix
+# Для формотриование uv run ruff format .
+# Для проверки типов uv run mypy .
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle ошибки
+    "W",   # pycodestyle предупреждения
+    "F",   # pyflakes (неиспользуемые импорты и т.д.)
+    "I",   # isort (порядок импортов)
+    "B",   # bugbear (частые баги)
+    "UP",  # pyupgrade (современный синтаксис Python)
+]
+ignore = ["E501"]  # длинные строки не ругаемся
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]  # поддержка pydantic моделей
