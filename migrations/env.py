@@ -2,7 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
+from sqlalchemy import pool, text
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import app.user.model  # noqa: F401
@@ -25,6 +25,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table_schema=settings.POSTGRES_SCHEMA,
+        include_schemas=True,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -37,10 +39,18 @@ async def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:
+        # Создаём схему если не существует — до всего остального
+        await connection.execute(
+            text(f'CREATE SCHEMA IF NOT EXISTS "{settings.POSTGRES_SCHEMA}"')
+        )
+        await connection.commit()
+
         await connection.run_sync(
             lambda conn: context.configure(
                 connection=conn,
                 target_metadata=target_metadata,
+                version_table_schema=settings.POSTGRES_SCHEMA,
+                include_schemas=True,
             )
         )
         async with connection.begin():

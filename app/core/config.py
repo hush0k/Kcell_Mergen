@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_HOST: str
     POSTGRES_PORT: int
+    POSTGRES_SCHEMA: str = "public"
 
     SECRET_KEY: str
     ALGORITHM: str
