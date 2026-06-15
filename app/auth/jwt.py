@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,7 +73,7 @@ class AuthService:
                 return None
 
             return token_data
-        except JWTError:
+        except InvalidTokenError:
             return None
 
     async def authenticate_user(self, username: str, password: str) -> User | None:
