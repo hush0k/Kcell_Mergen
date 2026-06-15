@@ -3,7 +3,6 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 
-
 class Token(BaseModel):
     access_token: str
     refresh_token: str
