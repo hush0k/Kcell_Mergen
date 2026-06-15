@@ -17,6 +17,12 @@ class AuthService:
         self.db = db
 
     def create_access_token(self, user_id: int) -> str:
+        """
+        Создает JWT access токен для пользователя с заданным user_id с временем жизни 30 минут
+        :param user_id:
+        :return:
+        """
+
         expire = datetime.now(UTC) + timedelta(
             minutes=settings.access_token_expire_minutes
         )
@@ -30,8 +36,14 @@ class AuthService:
         )
 
     def create_refresh_token(self, user_id: int) -> str:
+        """
+        Создание JWT refresh токена для пользователя с заданным user_id, который будет действовать в течение 100 лет
+        :param user_id:
+        :return:
+        """
+
         expire = datetime.now(UTC) + timedelta(
-            minutes=settings.refresh_token_expire_minutes
+            minutes=settings.refresh_token_expire_minutes # 100 лет в минутах
         )
         payload = TokenPayload(
             sub=str(user_id), exp=int(expire.timestamp()), type="refresh"
@@ -43,6 +55,13 @@ class AuthService:
         )
 
     def verify_token(self, token: str, token_type: str) -> TokenPayload | None:
+        """
+        Обычная проверка токена на правильность и срок действия. Также проверяет, что тип токена соответствует ожидаемому (access или refresh)
+        :param token:
+        :param token_type:
+        :return:
+        """
+
         try:
             payload = jwt.decode(
                 token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
@@ -57,6 +76,13 @@ class AuthService:
             return None
 
     async def authenticate_user(self, username: str, password: str) -> User | None:
+        """
+        Функция для проверки правильности введенных пользователем данных при логине. Ищет пользователя по имени и проверяет пароль
+        :param username:
+        :param password:
+        :return:
+        """
+
         result = await self.db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
 
@@ -69,6 +95,12 @@ class AuthService:
         return user
 
     async def get_current_user(self, credentials: HTTPAuthorizationCredentials) -> User:
+        """
+        С помощью access token берет данные юзера и возвращает его из базы. Если токен невалидный или юзер не найден, выбрасывает исключение
+        :param credentials:
+        :return:
+        """
+
         token = credentials.credentials
 
         token_data = self.verify_token(token, "access")
@@ -93,6 +125,12 @@ class AuthService:
         return user
 
     async def refresh_access_token(self, refresh_token: str) -> str:
+        """
+        Для обновления access token по refresh token. Проверяет валидность refresh token и, если он действителен, создает новый access token для того же пользователя
+        :param refresh_token:
+        :return:
+        """
+
         token_data = self.verify_token(refresh_token, "refresh")
         if not token_data:
             raise HTTPException(
