@@ -1,0 +1,29 @@
+@startuml AS-IS
+
+entity "control" {
+    * id : Integer <<PK>>
+    --
+    area : String(64)
+    name : String(128)
+    description : Text
+    time_estimate : Integer
+    frequency : String(32)
+    deadline_at : DateTime
+    responsible_id : Integer <<FK>>
+    backup_id : Integer <<FK>>
+    risk : String(64)
+    priority : String(32)
+    dashboard_url : String(512)
+    status : String(32)
+}
+
+entity "user" {
+    * id : Integer <<PK>>
+    --
+    ...
+}
+
+control::responsible_id }o--|| user::id
+control::backup_id }o--|| user::id
+
+@enduml

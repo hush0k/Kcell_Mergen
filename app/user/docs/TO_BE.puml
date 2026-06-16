@@ -1,0 +1,15 @@
+@startuml
+
+title TO BE
+
+entity "user" {
+  * id : INTEGER <<PK>>
+  --
+  * username : VARCHAR(64) <<UNIQUE>>
+  * password_hash : VARCHAR(256)
+  * role : ENUM(ADMIN, USER)
+  * created_at : TIMESTAMP WITH TIME ZONE
+  * updated_at : TIMESTAMP WITH TIME ZONE
+}
+
+@enduml

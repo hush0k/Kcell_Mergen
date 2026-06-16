@@ -1,0 +1,41 @@
+@startuml TO-BE
+
+entity "control" {
+    * id : Integer <<PK>>
+    --
+    area : String(64)
+    name : String(128)
+    description : String
+    time_estimate : Integer
+    frequency : Frequency <<Enum>>
+    deadline_at : DateTime
+    responsible_id : Integer <<FK>>
+    backup_id : Integer <<FK>>
+    risk : String(64)
+    priority : String(64)
+    dashboard_url : String(512)
+    status : ControlStatus <<Enum>>
+    created_at : DateTime <<mixin>>
+    updated_at : DateTime <<mixin>>
+}
+
+entity "user" {
+    * id : Integer <<PK>>
+    --
+    username : String(64)
+    password_hash : String(256)
+    role : UserRoles <<Enum>>
+}
+
+control::responsible_id }o--|| user::id
+control::backup_id }o--|| user::id
+
+note right of control
+  Изменения:
+  1. frequency: String(32) -> Frequency <<Enum>>
+  2. status: String(32) -> ControlStatus <<Enum>
+  3. Добавлены created_at, updated_at
+     из TimeStampMixin
+end note
+
+@enduml
