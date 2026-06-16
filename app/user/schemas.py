@@ -66,7 +66,7 @@ class UserUpdatePassword(BaseModel):
         return validate_strong_password(v)
 
     @model_validator(mode="after")
-    def validate_passwords_match(self) -> "UserUpdatePassword":
+    def validate_passwords_match(self) -> UserUpdatePassword:
         if self.new_password != self.repeat_new_password:
             raise ValueError("Пароли не совпадают")
         return self

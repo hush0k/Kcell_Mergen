@@ -16,14 +16,21 @@ class ControlRepository:
         return await self.db.get(Control, control_id)
 
     async def get_all(
-            self,
-            area: str | None = None,
-            status: ControlStatus | None = None,
-            order_by: Literal["name", "deadline_at", "time_estimate", "responsible_id", "backup_id", "status", "created_at"] =
+        self,
+        area: str | None = None,
+        status: ControlStatus | None = None,
+        order_by: Literal[
+            "name",
+            "deadline_at",
+            "time_estimate",
+            "responsible_id",
+            "backup_id",
+            "status",
             "created_at",
-            order_type: Literal["desc", "asc"] = "desc",
-            offset: int = 0,
-            limit: int = 20,
+        ] = "created_at",
+        order_type: Literal["desc", "asc"] = "desc",
+        offset: int = 0,
+        limit: int = 20,
     ) -> list[Control]:
         """Делает фильтр по полям и также сортирует список. Добавлена пагинация"""
 
@@ -48,14 +55,14 @@ class ControlRepository:
     async def create(self, control_in: ControlCreate) -> Control:
         control = Control(**control_in.model_dump())
         self.db.add(control)
-        return await self.save_control(control)
+        return await self._save_control(control)
 
     async def update(self, control: Control, control_in: ControlUpdate) -> Control:
         update_data = control_in.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(control, key, value)
 
-        return await self.save_control(control)
+        return await self._save_control(control)
 
     async def delete(self, control: Control) -> None:
         await self.db.delete(control)
