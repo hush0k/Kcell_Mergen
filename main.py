@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
+from app.control.router import router as control_router
 from app.db.database import create_schema
 from app.user.router import router as user_router
 
@@ -18,6 +19,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(control_router)
 
 
 @app.get("/")
