@@ -1,4 +1,4 @@
-from sqlalchemy import Enum, Integer, String
+from sqlalchemy import Enum, Integer, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.config import settings
@@ -19,3 +19,4 @@ class User(Base, TimeStampMixin):
         default=UserRoles.USER,
         nullable=False,
     )
+    is_og: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")

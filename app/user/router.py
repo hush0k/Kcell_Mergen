@@ -23,9 +23,9 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.get("/", response_model=list[UserResponse])
 async def get_all_users(
-    service: ServiceDep,
-    page: Annotated[int, Query(ge=1)] = 1,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+        service: ServiceDep,
+        page: int = 1,
+        limit: int = 20,
 ) -> list[User]:
     offset = (page - 1) * limit
     return await service.get_all_users(offset, limit)
