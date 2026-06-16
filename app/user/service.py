@@ -15,8 +15,6 @@ class UserService:
     async def get_user_by_id(self, user_id: int) -> User:
         """
         Получает пользователя по id. Кидает 404 если не найден.
-        :param user_id:
-        :return:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
@@ -28,8 +26,6 @@ class UserService:
     async def get_user_by_username(self, username: str) -> User:
         """
         Получает пользователя по username. Кидает 404 если не найден.
-        :param username:
-        :return:
         """
         user = await self.repo.get_by_username(username)
         if not user:
@@ -38,18 +34,15 @@ class UserService:
             )
         return user
 
-    async def get_all_users(self) -> list[User]:
+    async def get_all_users(self, offset: int = 0, limit: int = 20) -> list[User]:
         """
-        Возвращает список всех пользователей.
-        :return:
+        Возвращает список всех пользователей с пагинацией
         """
-        return await self.repo.get_all()
+        return await self.repo.get_all(offset=offset, limit=limit)
 
     async def create_user(self, user_in: UserCreate) -> User:
         """
         Создает нового пользователя. Проверяет что username не занят и хеширует пароль.
-        :param user_in:
-        :return:
         """
         user = await self.repo.get_by_username(user_in.username)
         if user:
@@ -67,9 +60,6 @@ class UserService:
     async def update_user(self, user_id: int, user_in: UserUpdate) -> User:
         """
         Обновляет данные пользователя по id.
-        :param user_id:
-        :param user_in:
-        :return:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
@@ -81,8 +71,6 @@ class UserService:
     async def delete_user(self, user_id: int) -> None:
         """
         Удаляет пользователя по id.
-        :param user_id:
-        :return:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
@@ -96,9 +84,6 @@ class UserService:
     ) -> None:
         """
         Меняет пароль пользователя после проверки старого пароля.
-        :param user_id:
-        :param passwords:
-        :return:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:
@@ -115,8 +100,6 @@ class UserService:
     async def is_admin(self, user_id: int) -> bool:
         """
         Проверяет является ли пользователь администратором.
-        :param user_id:
-        :return:
         """
         user = await self.repo.get_by_id(user_id)
         if not user:

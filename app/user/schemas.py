@@ -6,31 +6,29 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.user.enums import UserRoles
 
+# Переиспользуемые типы
+Username = Annotated[str, Field(min_length=3, max_length=63)]
+Password = Annotated[str, Field(min_length=8, max_length=100)]
+
 
 def validate_strong_password(password: str) -> str:
-    """
-    Валидация пароля по использованным буквам, цифрам, и символам
-    :param password:
-    :return:
-    """
-
     pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!_%*?&])[A-Za-z\d@$!%*?&]{8,}$"
     if not re.match(pattern, password):
         raise ValueError(
             "Пароль должен содержать: "
-            "минимум 8 символа, Заглавные буквы "
+            "минимум 8 символов, заглавные буквы, "
             "маленькие буквы, цифру и специальный символ"
         )
     return password
 
 
 class UserBase(BaseModel):
-    username: Annotated[str, Field(min_length=3, max_length=63)]
+    username: Username
     role: UserRoles
 
 
 class UserCreate(UserBase):
-    password: Annotated[str, Field(min_length=8, max_length=100)]
+    password: Password
 
     @field_validator("password")
     @classmethod
@@ -39,7 +37,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    username: Annotated[str, Field(min_length=3, max_length=63)] | None = None
+    username: Username | None = None
     role: UserRoles
 
 
@@ -56,7 +54,7 @@ class UserResponse(UserBase):
 
 
 class UserUpdatePassword(BaseModel):
-    """Валидация на сильный пароль а также проверка старого пароля чтобы реально ли владелец хочет изменить пароль."""
+    """Валидация на сильный пароль, а также проверка старого пароля."""
 
     old_password: str
     new_password: str
@@ -68,7 +66,7 @@ class UserUpdatePassword(BaseModel):
         return validate_strong_password(v)
 
     @model_validator(mode="after")
-    def validate_passwords_match(self) -> UserUpdatePassword:
+    def validate_passwords_match(self) -> "UserUpdatePassword":
         if self.new_password != self.repeat_new_password:
             raise ValueError("Пароли не совпадают")
         return self
