@@ -1,0 +1,30 @@
+@startuml task_as_is
+
+class Task {
+  + id: Integer <<PK>>
+  + control_id: Integer <<FK>>
+  + user_id: Integer <<FK, nullable>>
+  + date: Date
+  + created_at: DateTime
+  + status: String(32)
+  + start_time: DateTime
+  + end_time: DateTime
+  + comments: Text
+  + weekend_group_id: Integer <<FK, self-ref, nullable>>
+}
+
+class Control {
+}
+
+class User {
+}
+
+class Incident {
+}
+
+Task }o--|| Control : control_id
+Task }o--o| User : user_id
+Task ||--o{ Incident : incidents
+Task }o--o| Task : weekend_group_id (self-ref)
+
+@enduml

@@ -1,0 +1,49 @@
+@startuml task_to_be
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+class TimeStampMixin {
+  + created_at: DateTime
+  + updated_at: DateTime
+}
+
+class Task {
+  + id: Mapped[int] <<PK, index>>
+  + control_id: Mapped[int] <<FK>>
+  + user_id: Mapped[int | None] <<FK, nullable>>
+  + date: Mapped[datetime] <<Date>>
+  + start_time: Mapped[datetime | None]
+  + end_time: Mapped[datetime | None]
+  + comments: Mapped[str | None]
+  + status: Mapped[TaskStatus]
+  + weekend_group_id: Mapped[int | None] <<FK, self-ref>>
+}
+
+class Control {
+}
+
+class User {
+}
+
+class Incident {
+}
+
+Task --|> TimeStampMixin
+Task }o--|| Control : control
+Task }o--o| User : user
+Task }o--o| Task : weekend_group_id (self-ref)
+Task ||--o{ Task : weekend_tasks
+Task ||--o{ Incident : incidents (commented out)
+Task --> TaskStatus : status
+
+note on link
+  Incident relationship
+  временно закомментирован
+end note
+
+@enduml
