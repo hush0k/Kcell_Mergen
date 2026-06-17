@@ -7,12 +7,14 @@ from app.control.enums import ControlStatus
 from app.control.model import Control
 from app.control.repository import ControlRepository
 from app.control.schemas import ControlCreate, ControlUpdate
+from app.task.schemas import TaskCreate
 
 
 class ControlService:
     """Сервис для управления контроллерами. Содержит бизнес-логику и делегирует работу с БД в репозиторий."""
 
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = ControlRepository(db)
 
     async def create_control(self, control_in: ControlCreate) -> Control:
@@ -24,7 +26,15 @@ class ControlService:
         Returns:
             Созданный объект контроллера.
         """
-        return await self.repo.create(control_in)
+        from app.task.service import TaskService
+
+        control = await self.repo.create(control_in)
+
+        task_service = TaskService(self.db)
+        task_in = TaskCreate(control_id=control.id)
+        await task_service.create_task(task_in)
+
+        return control
 
     async def update_control(
         self, control_in: ControlUpdate, control_id: int

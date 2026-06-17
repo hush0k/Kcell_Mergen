@@ -26,8 +26,8 @@ class Task(Base, TimeStampMixin):
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"), nullable=True
     )
-    start_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     comments: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TaskStatus] = mapped_column(
         default=TaskStatus.NOT_STARTED, nullable=False
@@ -35,7 +35,7 @@ class Task(Base, TimeStampMixin):
     weekend_group_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.task.id"), nullable=True
     )
-    deadline_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    deadline_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     control: Mapped[Control] = relationship(foreign_keys=[control_id], lazy="noload")

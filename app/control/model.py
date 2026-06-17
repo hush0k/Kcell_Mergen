@@ -17,12 +17,12 @@ class Control(Base, TimeStampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     area: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
-    description: Mapped[str] = mapped_column(String)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
     time_estimate: Mapped[int] = mapped_column(Integer)
     frequency: Mapped[Frequency] = mapped_column(
         Enum(Frequency), default=Frequency.DAILY, nullable=False
     )
-    deadline_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     responsible_id: Mapped[int] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
     )
@@ -31,7 +31,7 @@ class Control(Base, TimeStampMixin):
     )
     risk: Mapped[str] = mapped_column(String(64), default="0")
     priority: Mapped[str] = mapped_column(String(32), default="0")
-    dashboard_url: Mapped[str] = mapped_column(String(512))
+    dashboard_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[ControlStatus] = mapped_column(
         Enum(ControlStatus), default=ControlStatus.ACTIVE
     )

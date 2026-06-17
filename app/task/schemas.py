@@ -16,7 +16,6 @@ class TaskBase(BaseModel):
     user_id: UserId | None
     start_time: datetime | None
     end_time: datetime | None
-    deadline_time: datetime | None
     comments: Annotated[str | None, Field(min_length=1, max_length=2000)]
     status: TaskStatus = TaskStatus.NOT_STARTED
     weekend_group_id: int | None = None
@@ -37,6 +36,7 @@ class TaskUpdate(BaseModel):
 
 class TaskResponse(TaskBase):
     id: TaskId
+    deadline_time: datetime
     control_id: ControlId
     created_at: datetime
     updated_at: datetime
