@@ -22,13 +22,15 @@ class Task(Base, TimeStampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     control_id: Mapped[int] = mapped_column(ForeignKey(f"{settings.POSTGRES_SCHEMA}.control.id"), nullable=False)
     user_id: Mapped[int | None] = mapped_column(ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"), nullable=True)
-    date: Mapped[date] = mapped_column(Date, nullable=False)
     start_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     comments: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TaskStatus] = mapped_column(default=TaskStatus.NOT_STARTED, nullable=False)
     weekend_group_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.task.id"), nullable=True
+    )
+    deadline_time: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True
     )
 
     # Relationships
