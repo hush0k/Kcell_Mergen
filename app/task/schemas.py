@@ -13,10 +13,10 @@ TaskName = Annotated[str, Field(min_length=1, max_length=256)]
 
 
 class TaskBase(BaseModel):
-    user_id: UserId | None
-    start_time: datetime | None
-    end_time: datetime | None
-    comments: Annotated[str | None, Field(min_length=1, max_length=2000)]
+    user_id: UserId | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    comments: Annotated[str | None, Field(min_length=1, max_length=2000)] = None
     status: TaskStatus = TaskStatus.NOT_STARTED
     weekend_group_id: int | None = None
 

@@ -44,6 +44,7 @@ class Task(Base, TimeStampMixin):
         "Task",
         foreign_keys=[weekend_group_id],
         backref="weekend_group",
+        remote_side=[id],
     )
     # incidents: Mapped[list["Incident"]] = relationship(
     #     back_populates="task",
