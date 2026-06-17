@@ -6,9 +6,7 @@ class Frequency(enum.StrEnum):
     WEEKLY = "еженедельно"
     MONTHLY = "ежемесячно"
     QUARTERLY = "ежеквартально"
-    AS_REQUIRED = "по требованию"
     BY_QUERY = "по запросу"
-    SINGLE_QUERY = "разово"
 
 
 class ControlStatus(enum.StrEnum):

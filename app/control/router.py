@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status as http_status
+from fastapi import APIRouter, Depends, status as http_status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -10,6 +10,7 @@ from app.control.schemas import ControlCreate, ControlResponse, ControlUpdate
 from app.control.service import ControlService
 from app.db.database import get_db
 from app.user.model import User
+from app.user.service import UserService
 
 router = APIRouter(prefix="/api/v1/controls", tags=["Control"])
 
@@ -17,8 +18,12 @@ router = APIRouter(prefix="/api/v1/controls", tags=["Control"])
 def get_control_service(db: Annotated[AsyncSession, Depends(get_db)]) -> ControlService:
     return ControlService(db)
 
+def get_user_service(db: Annotated[AsyncSession, Depends(get_db)]) -> UserService:
+    return UserService(db)
+
 
 ServiceDep = Annotated[ControlService, Depends(get_control_service)]
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
@@ -59,18 +64,28 @@ async def get_control(
 async def create_control(
         control_in: ControlCreate,
         service: ServiceDep,
-        _: CurrentUser,
+        current_user: CurrentUser,
 ) -> Control:
+    if not await UserServiceDep.is_admin(current_user.id):
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Для совершение операции требуется права администратора",
+        )
     return await service.create_control(control_in)
 
 
-@router.put("/{control_id}", response_model=ControlResponse)
+@router.patch("/{control_id}", response_model=ControlResponse)
 async def update_control(
         control_id: int,
         control_in: ControlUpdate,
         service: ServiceDep,
-        _: CurrentUser,
+        current_user: CurrentUser,
 ) -> Control:
+    if not await UserServiceDep.is_admin(current_user.id):
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Для совершение операции требуется права администратора",
+        )
     return await service.update_control(control_in, control_id)
 
 
@@ -78,6 +93,11 @@ async def update_control(
 async def delete_control(
         control_id: int,
         service: ServiceDep,
-        _: CurrentUser,
+        current_user: CurrentUser,
 ) -> None:
+    if not await UserServiceDep.is_admin(current_user.id):
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Для совершение операции требуется права администратора",
+        )
     await service.delete_control(control_id)

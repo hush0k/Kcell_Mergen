@@ -8,6 +8,7 @@ entity "user" {
   * username : VARCHAR(64) <<UNIQUE>>
   * password_hash : VARCHAR(256)
   * role : ENUM(ADMIN, USER)
+  * is_og : BOOLEAN
   * created_at : TIMESTAMP WITH TIME ZONE
   * updated_at : TIMESTAMP WITH TIME ZONE
 }
