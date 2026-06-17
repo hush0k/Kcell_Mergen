@@ -1,8 +1,12 @@
-from datetime import date, timedelta
+from calendar import monthrange
+from datetime import date, datetime, time, timedelta
 
-from fastapi import HTTPException, status as http_status
+from fastapi import HTTPException
+from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.control.repository import ControlRepository
+from app.task.enums import TaskStatus
 from app.task.model import Task
 from app.task.repository import TaskRepository
 from app.task.schemas import TaskCreate, TaskUpdate
@@ -13,6 +17,7 @@ class TaskService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = TaskRepository(db)
+        self.control_repo = ControlRepository(db)
         self.user_repo = UserRepository(db)
 
     async def get_task_by_id(self, task_id: int) -> Task:
@@ -25,7 +30,50 @@ class TaskService:
         return task
 
     async def create_task(self, task_in: TaskCreate) -> Task:
-        task = Task(**task_in.model_dump())
+        """Создает задачу. Также при создании задачи автоматический высчитывает deadline задачи и подставляет к водным данным. Задачи по
+        запросу автоматом длятся 100 лет. Это сделано для того чтобы задачи были по сути бесконечными по дедайну."""
+        control = await self.control_repo.get_by_id(task_in.control_id)
+        if not control:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Контроль не найден",
+            )
+
+        today = date.today()
+        deadline = date.today()
+        match control.frequency:
+            case "ежедневно":
+                deadline = datetime.combine(today, time(23, 59, 59))
+            case "еженедельно":
+                deadline = datetime.combine(
+                    today + timedelta(6 - today.weekday()), time(23, 59, 59)
+                )
+            case "ежемесячно":
+                last_day = date(
+                    today.year, today.month, monthrange(today.year, today.month)[1]
+                )
+                deadline = datetime.combine(last_day, time(23, 59, 59))
+            case "ежеквартально":
+                if today.month in [1, 2, 3]:
+                    deadline = datetime.combine(
+                        date(today.year, 3, 31), time(23, 59, 59)
+                    )
+                elif today.month in [4, 5, 6]:
+                    deadline = datetime.combine(
+                        date(today.year, 6, 30), time(23, 59, 59)
+                    )
+                elif today.month in [7, 8, 9]:
+                    deadline = datetime.combine(
+                        date(today.year, 9, 30), time(23, 59, 59)
+                    )
+                elif today.month in [10, 11, 12]:
+                    deadline = datetime.combine(
+                        date(today.year, 12, 31), time(23, 59, 59)
+                    )
+            case _:
+                deadline = datetime.now() + timedelta(days=365 * 100)
+
+        task = Task(**task_in.model_dump(), deadline_time=deadline)
         return await self.repo.create_task(task)
 
     async def update_task(self, task_id: int, task_in: TaskUpdate) -> Task:
@@ -58,54 +106,53 @@ class TaskService:
     async def get_completed(self, user_id: int) -> list[Task]:
         return await self.repo.get_complete(user_id)
 
-    async def update_overdue_task_dates(self) -> None:
-        overdue_tasks = await self.repo.get_overdue()
+    async def get_overdue(self, user_id: int) -> list[Task]:
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден",
+            )
+        return await self.repo.get_overdue(user)
 
-        for task in overdue_tasks:
-            new_date = self._calc_new_date(task)
-            if new_date:
-                task.date = new_date
-
-        await self.db.commit()
-
-    def _calc_new_date(self, task: Task) -> date | None:
-        today = date.today()
-        freq = task.control.frequency.lower().strip()
-
-        match freq:
-            case "ежедневно" | "daily":
-                return today
-            case "еженедельно" | "weekly":
-                days_until_friday = (4 - today.weekday()) % 7
-                return today + timedelta(days=days_until_friday)
-            case "ежемесячно" | "monthly":
-                return today
-            case "ежеквартально" | "quarterly":
-                quarter = (today.month - 1) // 3
-                quarter_end_month = quarter * 3 + 3
-                if quarter_end_month == 12:
-                    return date(today.year + 1, 1, 1) - timedelta(days=1)
-                return date(today.year, quarter_end_month + 1, 1) - timedelta(days=1)
-            case _:
-                return None
-
-    async def update_overdue_task_date(self) -> None:
-        overdue_tasks = await self.repo.get_overdue()
-
-        for task in overdue_tasks:
-            new_date = self._calc_new_date(task)
-            if not new_date:
-                continue
-
-            existing = await self.repo.get_active_by_control_and_date(
-                control_id=task.control_id,
-                date_=new_date,
+    async def start_task(self, task_id: int, user_id: int) -> Task:
+        task = await self.repo.get_by_id(task_id)
+        if not task:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND, detail="Задача не найден"
             )
 
-            if existing and existing.id != task.id:
-                await self.repo.delete(task)
-            else:
-                task.date = new_date
+        if task.status == TaskStatus.COMPLETED or task.status == TaskStatus.IN_PROGRESS:
+            raise HTTPException(
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail="Задача уже взята или уже закончен",
+            )
 
-        await self.db.commit()
+        task_in: TaskUpdate = TaskUpdate(
+            status=TaskStatus.IN_PROGRESS,
+            start_time=datetime.now(),
+            user_id=user_id,
+        )
 
+        return await self.repo.update(task, task_in)
+
+    async def complete_task(self, task_id: int) -> Task:
+        task = await self.repo.get_by_id(task_id)
+        if not task:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND, detail="Задача не найден"
+            )
+        if task.status != TaskStatus.IN_PROGRESS:
+            raise HTTPException(
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail="Задача еще не взята никем или уже закончен",
+            )
+
+        task_in: TaskUpdate = TaskUpdate(
+            status=TaskStatus.COMPLETED, end_time=datetime.now()
+        )
+
+        return await self.repo.update(task, task_in)
+
+    async def generate_tasks_via_db(self) -> None:
+        await self.repo.generate_tasks_via_db()

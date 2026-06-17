@@ -26,7 +26,9 @@ class ControlService:
         """
         return await self.repo.create(control_in)
 
-    async def update_control(self, control_in: ControlUpdate, control_id: int) -> Control:
+    async def update_control(
+        self, control_in: ControlUpdate, control_id: int
+    ) -> Control:
         """Обновляет существующий контроллер по его ID.
 
         Args:
@@ -68,25 +70,27 @@ class ControlService:
         """
         control = await self.repo.get_by_id(control_id)
         if not control:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Контроллер не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Контроллер не найден"
+            )
         return control
 
     async def get_controls(
-            self,
-            area: str | None = None,
-            control_status: ControlStatus | None = None,
-            order_by: Literal[
-                "name",
-                "deadline_at",
-                "time_estimate",
-                "responsible_id",
-                "backup_id",
-                "status",
-                "created_at",
-            ] = "created_at",
-            order_type: Literal["desc", "asc"] = "desc",
-            page: int = 1,
-            per_page: int = 20,
+        self,
+        area: str | None = None,
+        control_status: ControlStatus | None = None,
+        order_by: Literal[
+            "name",
+            "deadline_at",
+            "time_estimate",
+            "responsible_id",
+            "backup_id",
+            "status",
+            "created_at",
+        ] = "created_at",
+        order_type: Literal["desc", "asc"] = "desc",
+        page: int = 1,
+        per_page: int = 20,
     ) -> list[Control]:
         """Возвращает список контроллеров с фильтрацией, сортировкой и пагинацией.
 

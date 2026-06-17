@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Query
 
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
@@ -23,9 +22,9 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.get("/", response_model=list[UserResponse])
 async def get_all_users(
-        service: ServiceDep,
-        page: int = 1,
-        limit: int = 20,
+    service: ServiceDep,
+    page: int = 1,
+    limit: int = 20,
 ) -> list[User]:
     offset = (page - 1) * limit
     return await service.get_all_users(offset, limit)

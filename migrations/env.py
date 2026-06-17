@@ -6,8 +6,8 @@ from sqlalchemy import pool, text
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import app.control.model  # noqa: F401
-import app.user.model  # noqa: F401
 import app.task.model  # noqa: F401
+import app.user.model  # noqa: F401
 from app.core.config import settings
 from app.db.database import Base
 

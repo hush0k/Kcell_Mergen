@@ -1,6 +1,7 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status as http_status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -9,6 +10,7 @@ from app.control.model import Control
 from app.control.schemas import ControlCreate, ControlResponse, ControlUpdate
 from app.control.service import ControlService
 from app.db.database import get_db
+from app.user.enums import UserRoles
 from app.user.model import User
 from app.user.service import UserService
 
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/api/v1/controls", tags=["Control"])
 
 def get_control_service(db: Annotated[AsyncSession, Depends(get_db)]) -> ControlService:
     return ControlService(db)
+
 
 def get_user_service(db: Annotated[AsyncSession, Depends(get_db)]) -> UserService:
     return UserService(db)
@@ -29,17 +32,22 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.get("/", response_model=list[ControlResponse])
 async def get_controls(
-        service: ServiceDep,
-        _: CurrentUser,
-        area: str | None = None,
-        control_status: ControlStatus | None = None,
-        order_by: Literal[
-            "name", "deadline_at", "time_estimate",
-            "responsible_id", "backup_id", "status", "created_at"
-        ] = "created_at",
-        order_type: Literal["desc", "asc"] = "desc",
-        page: int = 1,
-        per_page: int = 20,
+    service: ServiceDep,
+    _: CurrentUser,
+    area: str | None = None,
+    control_status: ControlStatus | None = None,
+    order_by: Literal[
+        "name",
+        "deadline_at",
+        "time_estimate",
+        "responsible_id",
+        "backup_id",
+        "status",
+        "created_at",
+    ] = "created_at",
+    order_type: Literal["desc", "asc"] = "desc",
+    page: int = 1,
+    per_page: int = 20,
 ) -> list[Control]:
     return await service.get_controls(
         area=area,
@@ -53,20 +61,22 @@ async def get_controls(
 
 @router.get("/{control_id}", response_model=ControlResponse)
 async def get_control(
-        control_id: int,
-        service: ServiceDep,
-        _: CurrentUser,
+    control_id: int,
+    service: ServiceDep,
+    _: CurrentUser,
 ) -> Control:
     return await service.get_control_by_id(control_id)
 
 
-@router.post("/", response_model=ControlResponse, status_code=http_status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=ControlResponse, status_code=http_status.HTTP_201_CREATED
+)
 async def create_control(
-        control_in: ControlCreate,
-        service: ServiceDep,
-        current_user: CurrentUser,
+    control_in: ControlCreate,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> Control:
-    if not await UserServiceDep.is_admin(current_user.id):
+    if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Для совершение операции требуется права администратора",
@@ -76,12 +86,12 @@ async def create_control(
 
 @router.patch("/{control_id}", response_model=ControlResponse)
 async def update_control(
-        control_id: int,
-        control_in: ControlUpdate,
-        service: ServiceDep,
-        current_user: CurrentUser,
+    control_id: int,
+    control_in: ControlUpdate,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> Control:
-    if not await UserServiceDep.is_admin(current_user.id):
+    if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Для совершение операции требуется права администратора",
@@ -91,11 +101,11 @@ async def update_control(
 
 @router.delete("/{control_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 async def delete_control(
-        control_id: int,
-        service: ServiceDep,
-        current_user: CurrentUser,
+    control_id: int,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> None:
-    if not await UserServiceDep.is_admin(current_user.id):
+    if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Для совершение операции требуется права администратора",
