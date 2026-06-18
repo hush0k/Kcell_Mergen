@@ -22,7 +22,7 @@ class Control(Base, TimeStampMixin):
     frequency: Mapped[Frequency] = mapped_column(
         Enum(Frequency), default=Frequency.DAILY, nullable=False
     )
-    deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    # deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     responsible_id: Mapped[int] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
     )
