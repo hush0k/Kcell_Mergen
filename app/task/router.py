@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status as http_status
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -24,98 +25,98 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.get("/", response_model=list[TaskResponse])
 async def get_all_tasks(
-        service: ServiceDep,
-        _: CurrentUser,
-        page: int = 1,
-        limit: int = 100,
+    service: ServiceDep,
+    current_user: CurrentUser,
+    page: int = 1,
+    limit: int = 100,
 ) -> list[Task]:
     offset = (page - 1) * limit
-    return await service.get_all(offset=offset, limit=limit)
+    return await service.get_all(current_user, offset, limit)
 
 
 @router.get("/not-started", response_model=list[TaskResponse])
 async def get_not_started(
-        service: ServiceDep,
-        _: CurrentUser,
+    service: ServiceDep,
+    _: CurrentUser,
 ) -> list[Task]:
     return await service.get_not_started()
 
 
 @router.get("/in-progress", response_model=list[TaskResponse])
 async def get_in_progress(
-        service: ServiceDep,
-        current_user: CurrentUser,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> list[Task]:
     return await service.get_in_progress(current_user.id)
 
 
 @router.get("/completed", response_model=list[TaskResponse])
 async def get_completed(
-        service: ServiceDep,
-        current_user: CurrentUser,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> list[Task]:
     return await service.get_completed(current_user.id)
 
 
 @router.get("/overdue", response_model=list[TaskResponse])
 async def get_overdue(
-        service: ServiceDep,
-        current_user: CurrentUser,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> list[Task]:
     return await service.get_overdue(current_user.id)
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(
-        task_id: int,
-        service: ServiceDep,
-        _: CurrentUser,
+    task_id: int,
+    service: ServiceDep,
+    _: CurrentUser,
 ) -> Task:
     return await service.get_task_by_id(task_id)
 
 
 @router.post("/", response_model=TaskResponse, status_code=http_status.HTTP_201_CREATED)
 async def create_task(
-        task_in: TaskCreate,
-        service: ServiceDep,
-        _: CurrentUser,
+    task_in: TaskCreate,
+    service: ServiceDep,
+    _: CurrentUser,
 ) -> Task:
     return await service.create_task(task_in)
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
 async def update_task(
-        task_id: int,
-        task_in: TaskUpdate,
-        service: ServiceDep,
-        _: CurrentUser,
+    task_id: int,
+    task_in: TaskUpdate,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> Task:
-    return await service.update_task(task_id, task_in)
+    return await service.update_task(task_id, task_in, current_user)
 
 
 @router.post("/{task_id}/start", response_model=TaskResponse)
 async def start_task(
-        task_id: int,
-        service: ServiceDep,
-        current_user: CurrentUser,
+    task_id: int,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> Task:
     return await service.start_task(task_id, current_user.id)
 
 
 @router.post("/{task_id}/complete", response_model=TaskResponse)
 async def complete_task(
-        task_id: int,
-        service: ServiceDep,
-        _: CurrentUser,
+    task_id: int,
+    service: ServiceDep,
+    _: CurrentUser,
 ) -> Task:
     return await service.complete_task(task_id)
 
 
 @router.delete("/{task_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 async def delete_task(
-        task_id: int,
-        service: ServiceDep,
-        current_user: CurrentUser,
+    task_id: int,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> None:
     if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
@@ -124,11 +125,9 @@ async def delete_task(
         )
     await service.delete_task(task_id)
 
-@router.get("/trigger-task-generator", status_code=http_status.HTTP_204_NO_CONTENT)
-async def trigger_task_generator(
-        service: ServiceDep,
-        current_user: CurrentUser
-):
+
+@router.post("/trigger-task-generator", status_code=http_status.HTTP_204_NO_CONTENT)
+async def trigger_task_generator(service: ServiceDep, current_user: CurrentUser):
     if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
@@ -136,12 +135,16 @@ async def trigger_task_generator(
         )
     await service.generate_tasks_via_db()
 
-@router.get("/tasks-with-controls", status_code=http_status.HTTP_200_OK, response_model=list[TaskResponse])
+
+@router.get(
+    "/tasks-with-controls",
+    status_code=http_status.HTTP_200_OK,
+    response_model=list[TaskResponse],
+)
 async def get_tasks_with_controls(
-        service: ServiceDep,
-        _: CurrentUser,
-        page: int = 1,
-        limit: int = 20,
+    service: ServiceDep,
+    _: CurrentUser,
+    page: int = 1,
+    limit: int = 20,
 ):
     return await service.get_all_with_controls(page, limit)
-

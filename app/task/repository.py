@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from sqlalchemy import select, text
+from sqlalchemy import or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import aliased, joinedload
 
 from app.control.enums import ControlStatus
 from app.control.model import Control
@@ -21,7 +21,9 @@ class TaskRepository:
     async def get_by_id(self, task_id: int) -> Task | None:
         return await self.db.get(Task, task_id)
 
-    async def get_all_with_controls(self, offset: int = 0, limit: int = 20) -> list[Task]:
+    async def get_all_with_controls(
+        self, offset: int = 0, limit: int = 20
+    ) -> list[Task]:
         results = await self.db.execute(
             select(Task)
             .options(
@@ -31,13 +33,45 @@ class TaskRepository:
             .join(Control)
             .where(Control.status == ControlStatus.ACTIVE)
             .order_by(Task.created_at.desc(), Task.id.desc())
-            .offset(offset).limit(limit)
+            .offset(offset)
+            .limit(limit)
         )
         return list(results.scalars().unique().all())
 
-    async def get_all(self, offset: int, limit: int) -> list[Task]:
-        results = await self.db.execute(select(Task).offset(offset).limit(limit))
-        return list(results.scalars().all())
+    async def get_all(self, offset: int, limit: int, current_user: User) -> list[Task]:
+        if current_user.role == UserRoles.ADMIN:
+            results = await self.db.execute(select(Task).offset(offset).limit(limit))
+        elif current_user.is_og:
+            responsible_user = aliased(User)
+            results = await self.db.execute(
+                select(Task)
+                .join(Control, Task.control_id == Control.id)
+                .join(responsible_user, Control.responsible_id == responsible_user.id)
+                .where(
+                    or_(
+                        Control.responsible_id == current_user.id,
+                        Control.backup_id == current_user.id,
+                        responsible_user.is_og,
+                    )
+                )
+                .offset(offset)
+                .limit(limit)
+            )
+        else:
+            results = await self.db.execute(
+                select(Task)
+                .join(Control, Task.control_id == Control.id)
+                .where(
+                    or_(
+                        Control.responsible_id == current_user.id,
+                        Control.backup_id == current_user.id,
+                    )
+                )
+                .offset(offset)
+                .limit(limit)
+            )
+
+        return list(results.scalars().unique().all())
 
     async def get_not_started(self) -> list[Task]:
         results = await self.db.execute(
@@ -108,3 +142,9 @@ class TaskRepository:
         await self.db.execute(text(f"SELECT {schema}.generate_quarterly_tasks()"))
         await self.db.execute(text(f"SELECT {schema}.update_overdue_task_dates()"))
         await self.db.commit()
+
+    async def get_tasks_by_weekend_id(self, weekend_id: int) -> list[Task]:
+        results = await self.db.execute(
+            select(Task).where(Task.weekend_group_id == weekend_id)
+        )
+        return list(results.scalars().all())

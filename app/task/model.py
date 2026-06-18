@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import settings
@@ -26,16 +26,29 @@ class Task(Base, TimeStampMixin):
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"), nullable=True
     )
-    start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    start_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    end_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     comments: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TaskStatus] = mapped_column(
-        default=TaskStatus.NOT_STARTED, nullable=False
+        Enum(
+            TaskStatus,
+            schema=settings.POSTGRES_SCHEMA,
+            name="taskstatus",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        default=TaskStatus.NOT_STARTED,
+        nullable=False,
     )
     weekend_group_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.task.id"), nullable=True
     )
-    deadline_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deadline_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     control: Mapped[Control] = relationship(foreign_keys=[control_id], lazy="noload")
@@ -50,6 +63,3 @@ class Task(Base, TimeStampMixin):
     #     back_populates="task",
     #     cascade="all, delete-orphan",
     # )
-
-
-

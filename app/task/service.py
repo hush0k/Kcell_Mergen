@@ -4,13 +4,14 @@ from datetime import date, datetime, time, timedelta
 from fastapi import HTTPException
 from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
-from watchfiles import awatch
 
+from app.control.enums import Frequency
 from app.control.repository import ControlRepository
 from app.task.enums import TaskStatus
 from app.task.model import Task
 from app.task.repository import TaskRepository
 from app.task.schemas import TaskCreate, TaskUpdate
+from app.user.model import User
 from app.user.repository import UserRepository
 
 
@@ -44,33 +45,43 @@ class TaskService:
         today = date.today()
         deadline = date.today()
         match control.frequency:
-            case "ежедневно":
+            case Frequency.DAILY:
                 deadline = datetime.combine(today, time(23, 59, 59))
-            case "еженедельно":
+            case Frequency.WEEKLY:
                 deadline = datetime.combine(
                     today + timedelta(6 - today.weekday()), time(23, 59, 59)
                 )
-            case "ежемесячно":
+            case Frequency.MONTHLY:
                 last_day = date(
                     today.year, today.month, monthrange(today.year, today.month)[1]
                 )
                 deadline = datetime.combine(last_day, time(23, 59, 59))
-            case "ежеквартально":
+            case Frequency.QUARTERLY:
                 if today.month in [1, 2, 3]:
-                    deadline = datetime.combine(date(today.year, 3, 31), time(23, 59, 59))
+                    deadline = datetime.combine(
+                        date(today.year, 3, 31), time(23, 59, 59)
+                    )
                 elif today.month in [4, 5, 6]:
-                    deadline = datetime.combine(date(today.year, 6, 30), time(23, 59, 59))
+                    deadline = datetime.combine(
+                        date(today.year, 6, 30), time(23, 59, 59)
+                    )
                 elif today.month in [7, 8, 9]:
-                    deadline = datetime.combine(date(today.year, 9, 30), time(23, 59, 59))
+                    deadline = datetime.combine(
+                        date(today.year, 9, 30), time(23, 59, 59)
+                    )
                 elif today.month in [10, 11, 12]:
-                    deadline = datetime.combine(date(today.year, 12, 31), time(23, 59, 59))
+                    deadline = datetime.combine(
+                        date(today.year, 12, 31), time(23, 59, 59)
+                    )
             case _:
                 deadline = datetime.now() + timedelta(days=365 * 100)
 
         task = Task(**task_in.model_dump(), deadline_time=deadline)
         return await self.repo.create_task(task)
 
-    async def update_task(self, task_id: int, task_in: TaskUpdate) -> Task:
+    async def update_task(
+        self, task_id: int, task_in: TaskUpdate, current_user: User
+    ) -> Task:
         """Обновляет данные задачи по id. Кидает 404 если не найдена."""
         task = await self.repo.get_by_id(task_id)
         if not task:
@@ -78,6 +89,21 @@ class TaskService:
                 status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Задача не найдена",
             )
+
+        control = await self.control_repo.get_by_id(task.control_id)
+        if not control:
+            raise HTTPException(
+                http_status.HTTP_404_NOT_FOUND, detail="Контроллер не найден"
+            )
+        if (
+            current_user.id != control.responsible_id
+            or current_user.id != control.backup_id
+        ):
+            raise HTTPException(
+                http_status.HTTP_403_FORBIDDEN,
+                detail="Не достаточно прав для изменение задачи",
+            )
+
         return await self.repo.update(task, task_in)
 
     async def delete_task(self, task_id: int) -> None:
@@ -90,9 +116,11 @@ class TaskService:
             )
         await self.repo.delete(task)
 
-    async def get_all(self, offset: int = 0, limit: int = 100) -> list[Task]:
+    async def get_all(
+        self, current_user: User, offset: int = 0, limit: int = 100
+    ) -> list[Task]:
         """Возвращает все задачи с пагинацией."""
-        return await self.repo.get_all(offset=offset, limit=limit)
+        return await self.repo.get_all(offset, limit, current_user)
 
     async def get_not_started(self) -> list[Task]:
         """Возвращает все задачи со статусом NOT_STARTED."""
@@ -136,7 +164,8 @@ class TaskService:
         return await self.repo.update(task, task_in)
 
     async def complete_task(self, task_id: int) -> Task:
-        """Завершает задачу. Ставит статус COMPLETED и фиксирует end_time. Кидает 400 если задача не IN_PROGRESS."""
+        """Завершает задачу. Также если контроль завершенной задачи является 'по запросу', то создается новая задача по этому контролю.
+        Ставит статус COMPLETED и фиксирует end_time. Кидает 400 если задача не IN_PROGRESS."""
         task = await self.repo.get_by_id(task_id)
         if not task:
             raise HTTPException(
@@ -150,7 +179,17 @@ class TaskService:
         task_in: TaskUpdate = TaskUpdate(
             status=TaskStatus.COMPLETED, end_time=datetime.now()
         )
-        return await self.repo.update(task, task_in)
+        completed_task = await self.repo.update(task, task_in)
+
+        if task.weekend_group_id is not None:
+            await self.sync_weekend_tasks(task)
+
+        control = await self.control_repo.get_by_id(task.control_id)
+        if control.frequency == Frequency.BY_QUERY:
+            new_task: TaskCreate = TaskCreate(control_id=task.control_id)
+            await self.create_task(new_task)
+
+        return completed_task
 
     async def generate_tasks_via_db(self) -> None:
         """Запускает генерацию задач через SQL функции в БД."""
@@ -161,4 +200,10 @@ class TaskService:
         offset = (page - 1) * limit
         return await self.repo.get_all_with_controls(offset, limit)
 
-
+    async def sync_weekend_tasks(self, task: Task) -> None:
+        tasks: list[Task] = await self.repo.get_tasks_by_weekend_id(
+            task.weekend_group_id
+        )
+        for t in tasks:
+            t.status = TaskStatus.COMPLETED
+            await self.repo.save_task(t)
