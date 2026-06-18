@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import or_, select, text
+from sqlalchemy import or_, select, text, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, joinedload
 
@@ -64,8 +64,13 @@ class TaskRepository:
                 .where(
                     or_(
                         Control.responsible_id == current_user.id,
-                        Control.backup_id == current_user.id,
-                    )
+                        and_(
+                            Control.backup_id == current_user.id,
+                            Task.user_id != current_user.id,
+                            Task.status.in_([TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]),
+                            Task.deadline_time < func.now(),
+                            ),
+                        )
                 )
                 .offset(offset)
                 .limit(limit)

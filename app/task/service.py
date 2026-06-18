@@ -11,6 +11,7 @@ from app.task.enums import TaskStatus
 from app.task.model import Task
 from app.task.repository import TaskRepository
 from app.task.schemas import TaskCreate, TaskUpdate
+from app.user.enums import UserRoles
 from app.user.model import User
 from app.user.repository import UserRepository
 
@@ -79,29 +80,28 @@ class TaskService:
         task = Task(**task_in.model_dump(), deadline_time=deadline)
         return await self.repo.create_task(task)
 
-    async def update_task(
-        self, task_id: int, task_in: TaskUpdate, current_user: User
-    ) -> Task:
-        """Обновляет данные задачи по id. Кидает 404 если не найдена."""
+    async def update_task(self, task_id: int, task_in: TaskUpdate, current_user: User) -> Task:
         task = await self.repo.get_by_id(task_id)
         if not task:
-            raise HTTPException(
-                status_code=http_status.HTTP_404_NOT_FOUND,
-                detail="Задача не найдена",
-            )
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Задача не найдена")
 
         control = await self.control_repo.get_by_id(task.control_id)
         if not control:
-            raise HTTPException(
-                http_status.HTTP_404_NOT_FOUND, detail="Контроллер не найден"
-            )
-        if (
-            current_user.id != control.responsible_id
-            or current_user.id != control.backup_id
-        ):
+            raise HTTPException(http_status.HTTP_404_NOT_FOUND, detail="Контроллер не найден")
+
+        is_admin = current_user.role == UserRoles.ADMIN
+        is_responsible = control.responsible_id == current_user.id
+        is_backup = control.backup_id == current_user.id
+
+        # OG: текущий юзер is_og И ответственный за контрол тоже is_og
+        responsible_user = await self.user_repo.get_by_id(control.responsible_id)
+        is_og_task = responsible_user is not None and responsible_user.is_og
+        is_og_access = current_user.is_og and is_og_task
+
+        if not (is_admin or is_responsible or is_backup or is_og_access):
             raise HTTPException(
                 http_status.HTTP_403_FORBIDDEN,
-                detail="Не достаточно прав для изменение задачи",
+                detail="Недостаточно прав для изменения задачи",
             )
 
         return await self.repo.update(task, task_in)
