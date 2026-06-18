@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.control.enums import ControlStatus, Frequency
@@ -20,7 +18,14 @@ class Control(Base, TimeStampMixin):
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     time_estimate: Mapped[int] = mapped_column(Integer)
     frequency: Mapped[Frequency] = mapped_column(
-        Enum(Frequency), default=Frequency.DAILY, nullable=False
+        Enum(
+            Frequency,
+            schema=settings.POSTGRES_SCHEMA,
+            name="frequency",
+            values_callable=lambda f: [e.value for e in f],
+        ),
+        default=Frequency.DAILY,
+        nullable=False,
     )
     # deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     responsible_id: Mapped[int] = mapped_column(
@@ -33,7 +38,13 @@ class Control(Base, TimeStampMixin):
     priority: Mapped[str] = mapped_column(String(32), default="0")
     dashboard_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[ControlStatus] = mapped_column(
-        Enum(ControlStatus), default=ControlStatus.ACTIVE
+        Enum(
+            ControlStatus,
+            schema=settings.POSTGRES_SCHEMA,
+            name="controlstatus",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        default=ControlStatus.ACTIVE,
     )
 
     # Relationships

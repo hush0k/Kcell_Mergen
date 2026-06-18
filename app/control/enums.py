@@ -1,7 +1,7 @@
 import enum
 
 
-class Frequency(enum.StrEnum):
+class Frequency(enum.Enum):
     DAILY = "ежедневно"
     WEEKLY = "еженедельно"
     MONTHLY = "ежемесячно"
@@ -9,6 +9,6 @@ class Frequency(enum.StrEnum):
     BY_QUERY = "по запросу"
 
 
-class ControlStatus(enum.StrEnum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
+class ControlStatus(enum.Enum):
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"

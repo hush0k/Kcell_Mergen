@@ -19,7 +19,6 @@ class ControlCreate(BaseModel):
     description: str | None = None
     time_estimate: int | None = None
     frequency: Frequency = Frequency.DAILY
-    deadline_at: datetime | None = None
     responsible_id: int | None = None
     backup_id: int | None = None
     risk: Risk = "0"
@@ -34,7 +33,6 @@ class ControlUpdate(BaseModel):
     description: str | None = None
     time_estimate: int | None = None
     frequency: Frequency | None = None
-    deadline_at: datetime | None = None
     responsible_id: int | None = None
     backup_id: int | None = None
     risk: Risk | None = None
@@ -50,7 +48,6 @@ class ControlResponse(BaseModel):
     description: str | None
     time_estimate: int | None
     frequency: Frequency
-    deadline_at: datetime | None
     responsible_id: int | None
     backup_id: int | None
     risk: str
