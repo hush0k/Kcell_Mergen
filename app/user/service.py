@@ -34,10 +34,11 @@ class UserService:
             )
         return user
 
-    async def get_all_users(self, offset: int = 0, limit: int = 20) -> list[User]:
+    async def get_all_users(self, page: int = 0, limit: int = 20) -> list[User]:
         """
         Возвращает список всех пользователей с пагинацией
         """
+        offset = (page - 1) * limit
         return await self.repo.get_all(offset=offset, limit=limit)
 
     async def create_user(self, user_in: UserCreate) -> User:

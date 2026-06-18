@@ -26,8 +26,7 @@ async def get_all_users(
     page: int = 1,
     limit: int = 20,
 ) -> list[User]:
-    offset = (page - 1) * limit
-    return await service.get_all_users(offset, limit)
+    return await service.get_all_users(page, limit)
 
 
 @router.get("/{user_id}", response_model=UserResponse)
