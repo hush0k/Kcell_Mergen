@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.task.model import Task
 from app.task.schemas import TaskCreate, TaskResponse, TaskUpdate
 from app.task.service import TaskService
+from app.user.enums import UserRoles
 from app.user.model import User
 
 router = APIRouter(prefix="/api/v1/tasks", tags=["Task"])
@@ -73,7 +74,7 @@ async def get_task(
     return await service.get_task_by_id(task_id)
 
 
-@router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=TaskResponse, status_code=http_status.HTTP_201_CREATED)
 async def create_task(
         task_in: TaskCreate,
         service: ServiceDep,
@@ -110,10 +111,37 @@ async def complete_task(
     return await service.complete_task(task_id)
 
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{task_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 async def delete_task(
         task_id: int,
         service: ServiceDep,
-        _: CurrentUser,
+        current_user: CurrentUser,
 ) -> None:
+    if current_user.role != UserRoles.ADMIN:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Для совершение операции требуется права администратора",
+        )
     await service.delete_task(task_id)
+
+@router.get("/trigger-task-generator", status_code=http_status.HTTP_204_NO_CONTENT)
+async def trigger_task_generator(
+        service: ServiceDep,
+        current_user: CurrentUser
+):
+    if current_user.role != UserRoles.ADMIN:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Для совершение операции требуется права администратора",
+        )
+    await service.generate_tasks_via_db()
+
+@router.get("/tasks-with-controls", status_code=http_status.HTTP_200_OK, response_model=list[TaskResponse])
+async def get_tasks_with_controls(
+        service: ServiceDep,
+        _: CurrentUser,
+        page: int = 1,
+        limit: int = 20,
+):
+    return await service.get_all_with_controls(page, limit)
+

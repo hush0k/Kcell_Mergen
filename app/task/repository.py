@@ -21,7 +21,7 @@ class TaskRepository:
     async def get_by_id(self, task_id: int) -> Task | None:
         return await self.db.get(Task, task_id)
 
-    async def get_all_with_controls(self) -> list[Task]:
+    async def get_all_with_controls(self, offset: int = 0, limit: int = 20) -> list[Task]:
         results = await self.db.execute(
             select(Task)
             .options(
@@ -31,6 +31,7 @@ class TaskRepository:
             .join(Control)
             .where(Control.status == ControlStatus.ACTIVE)
             .order_by(Task.created_at.desc(), Task.id.desc())
+            .offset(offset).limit(limit)
         )
         return list(results.scalars().unique().all())
 

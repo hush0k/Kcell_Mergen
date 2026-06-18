@@ -4,6 +4,7 @@ from datetime import date, datetime, time, timedelta
 from fastapi import HTTPException
 from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
+from watchfiles import awatch
 
 from app.control.repository import ControlRepository
 from app.task.enums import TaskStatus
@@ -154,3 +155,10 @@ class TaskService:
     async def generate_tasks_via_db(self) -> None:
         """Запускает генерацию задач через SQL функции в БД."""
         await self.repo.generate_tasks_via_db()
+
+    async def get_all_with_controls(self, page: int = 0, limit: int = 0) -> list[Task]:
+        """Получить все задачи вместе контроллерами"""
+        offset = (page - 1) * limit
+        return await self.repo.get_all_with_controls(offset, limit)
+
+
