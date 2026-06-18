@@ -40,3 +40,5 @@ class TaskResponse(TaskBase):
     control_id: ControlId
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}

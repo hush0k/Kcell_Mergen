@@ -126,7 +126,7 @@ async def delete_task(
     await service.delete_task(task_id)
 
 
-@router.post("/trigger-task-generator", status_code=http_status.HTTP_204_NO_CONTENT)
+@router.post("/trigger-tasks-generator", status_code=http_status.HTTP_204_NO_CONTENT)
 async def trigger_task_generator(service: ServiceDep, current_user: CurrentUser):
     if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
