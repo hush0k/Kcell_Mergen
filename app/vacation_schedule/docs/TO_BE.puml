@@ -1,0 +1,41 @@
+@startuml vacation_schedule_to_be
+
+enum VacationType {
+  ANNUAL_LEAVE
+  SICK_LEAVE
+  BUSINESS_TRIP
+}
+
+enum VacationStatus {
+  ACTIVE
+  CANCELLED
+}
+
+class TimeStampMixin {
+  + created_at: DateTime
+  + updated_at: DateTime
+}
+
+class VacationSchedule {
+  + id: Mapped[int] <<PK, index>>
+  + user_id: Mapped[int] <<FK>>
+  + start_date: Mapped[date]
+  + end_date: Mapped[date]
+  + vacation_type: Mapped[VacationType]
+  + status: Mapped[VacationStatus]
+}
+
+class User {
+}
+
+VacationSchedule --|> TimeStampMixin
+VacationSchedule }o--|| User : user
+VacationSchedule --> VacationType : vacation_type
+VacationSchedule --> VacationStatus : status
+
+note right of VacationSchedule
+  Строки vacation_type/status вынесены в Enum
+  created_at/updated_at — из TimeStampMixin
+end note
+
+@enduml

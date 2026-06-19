@@ -92,19 +92,19 @@ class VacationScheduleService:
         ]
 
 
-    async def _check_for_vacation(self, user_id: int) -> bool:
-        return bool(await self.db.scalar(
-            select(
-                exists().where(
-                    and_(
-                        VacationSchedule.user_id == user_id,
-                        VacationSchedule.status == VacationStatus.ACTIVE,
-                        VacationSchedule.start_date <= func.current_date(),
-                        VacationSchedule.end_date >= func.current_date(),
-                        )
-                )
-            )
-        ))
+    # async def _check_for_vacation(self, user_id: int) -> bool:
+    #     return bool(await self.db.scalar(
+    #         select(
+    #             exists().where(
+    #                 and_(
+    #                     VacationSchedule.user_id == user_id,
+    #                     VacationSchedule.status == VacationStatus.ACTIVE,
+    #                     VacationSchedule.start_date <= func.current_date(),
+    #                     VacationSchedule.end_date >= func.current_date(),
+    #                     )
+    #             )
+    #         )
+    #     ))
 
 
 

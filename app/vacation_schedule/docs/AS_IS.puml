@@ -1,0 +1,25 @@
+@startuml vacation_schedule_as_is
+
+class VacationSchedule {
+  + id: Integer <<PK>>
+  + user_id: Integer <<FK>>
+  + start_date: Date
+  + end_date: Date
+  + vacation_type: String(50)
+  + status: String(32)
+  + created_at: DateTime
+  + updated_at: DateTime
+}
+
+class User {
+}
+
+VacationSchedule }o--|| User : user_id
+
+note right of VacationSchedule
+  vacation_type: отпуск / больничный / командировка
+  status: active / cancelled
+  (хранятся как строки)
+end note
+
+@enduml
