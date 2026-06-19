@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from os.path import exists
 
 from fastapi import HTTPException, status as http_status
@@ -69,20 +69,28 @@ class VacationScheduleService:
         await self.db.delete(vacation)
         await self.db.commit()
 
-    async def get_active_vacations_with_remaining_days(self,current_user: User) -> VacationScheduleRemainingList:
+
+    async def get_active_vacations_with_remaining_days(self, current_user: User) -> list[VacationScheduleRemainingList]:
         user = await self.user_repo.get_by_id(current_user.id)
         if not user or user.role != UserRoles.ADMIN:
-            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Пользователь не найден или не является администратором")
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден или не является администратором",
+            )
         results = await self.db.execute(
-            select(VacationSchedule)
-            .where(VacationSchedule.status == VacationStatus.ACTIVE)
+            select(VacationSchedule).where(VacationSchedule.status == VacationStatus.ACTIVE)
         )
         vacations_list = results.scalars().unique().all()
 
-        return VacationScheduleRemainingList(
-            vacations=[VacationScheduleResponse.model_validate(v) for v in vacations_list],
-            days=len(vacations_list)
-        )
+        today = date.today()
+        return [
+            VacationScheduleRemainingList(
+                vacation=VacationScheduleResponse.model_validate(v),
+                days=(v.end_date - today).days,
+            )
+            for v in vacations_list
+        ]
+
 
     async def _check_for_vacation(self, user_id: int) -> bool:
         return bool(await self.db.scalar(

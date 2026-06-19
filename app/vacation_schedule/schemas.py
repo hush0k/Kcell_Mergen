@@ -1,5 +1,5 @@
 from typing import Annotated
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -27,29 +27,29 @@ class VacationScheduleUpdate(BaseModel):
 
 class VacationScheduleResponse(VacationScheduleBase):
     user_id: UserId
-    created_at: date
-    updated_at: date
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 
 class VacationScheduleRemainingList(BaseModel):
-    vacations: list[VacationScheduleResponse]
+    vacation: VacationScheduleResponse
     days: int
 
-class VacationScheduleFilter(BaseModel):
-    start_date: date | None = None
-    end_date: date | None = None
-    vacation_type: VacationType | None = None
-    status: VacationStatus | None = None
-
-class VacationScheduleSort(BaseModel):
-    user_id: UserId | None
-    start_date: date | None = None
-    end_date: date | None = None
-    vacation_type: VacationType | None = None
-    status: VacationStatus | None = None
-    created_at: date | None = None
-    updated_at: date | None = None
+# class VacationScheduleFilter(BaseModel):
+#     start_date: date | None = None
+#     end_date: date | None = None
+#     vacation_type: VacationType | None = None
+#     status: VacationStatus | None = None
+#
+# class VacationScheduleSort(BaseModel):
+#     user_id: UserId | None
+#     start_date: date | None = None
+#     end_date: date | None = None
+#     vacation_type: VacationType | None = None
+#     status: VacationStatus | None = None
+#     created_at: date | None = None
+#     updated_at: date | None = None
 
 
 
