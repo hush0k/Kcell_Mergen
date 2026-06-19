@@ -1,4 +1,5 @@
-from fastapi import HTTPException, status as http_status
+from fastapi import HTTPException
+from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.mfs.model import MfsAuditLog
@@ -18,7 +19,10 @@ class MfsAuditLogService:
     async def get_by_id(self, mfs_id: int, user: User) -> MfsAuditLog:
         result = await self.repo.get_by_id(mfs_id)
         if not result:
-            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="МФС аудит лог не найден")
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="МФС аудит лог не найден",
+            )
 
         if user.role == UserRoles.ADMIN:
             return result
@@ -26,9 +30,14 @@ class MfsAuditLogService:
             if result.user_id == user.id:
                 return result
             else:
-                raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Не достаточно прав для просмотра лога")
+                raise HTTPException(
+                    status_code=http_status.HTTP_403_FORBIDDEN,
+                    detail="Не достаточно прав для просмотра лога",
+                )
 
-    async def get_all(self, user: User, page: int = 1, limit: int = 200) -> list[MfsAuditLog]:
+    async def get_all(
+        self, user: User, page: int = 1, limit: int = 200
+    ) -> list[MfsAuditLog]:
         offset = (page - 1) * limit
         if user.role == UserRoles.ADMIN:
             return await self.repo.get_all(offset, limit)

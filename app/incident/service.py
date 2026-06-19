@@ -61,7 +61,7 @@ class IncidentService:
         return await self.repo.get_all(offset, limit)
 
     async def create_incident(
-            self, incident_in: IncidentCreate, current_user: User
+        self, incident_in: IncidentCreate, current_user: User
     ) -> Incident:
         """Создаёт инцидент. Разрешено только для завершённого таска. Автор берётся из токена.
 
@@ -89,7 +89,7 @@ class IncidentService:
         return await self.repo.create(incident_in, current_user.username)
 
     async def update_incident(
-            self, incident_id: int, incident_in: IncidentUpdate, current_user: User
+        self, incident_id: int, incident_in: IncidentUpdate, current_user: User
     ) -> Incident:
         """Редактирует поля инцидента. Доступно админу или автору, и только в статусе «Открыт».
 
@@ -117,7 +117,7 @@ class IncidentService:
         return await self.repo.update(incident, incident_in)
 
     async def change_status(
-            self, incident_id: int, new_status: IncidentStatus, current_user: User
+        self, incident_id: int, new_status: IncidentStatus, current_user: User
     ) -> Incident:
         """Меняет статус инцидента по правилам согласования.
 
@@ -148,7 +148,10 @@ class IncidentService:
 
         if new_status == IncidentStatus.ON_APPROVAL:
             self._check_author_or_admin(incident, current_user)
-        elif new_status in (IncidentStatus.APPROVED, IncidentStatus.REJECTED) and not is_admin:
+        elif (
+            new_status in (IncidentStatus.APPROVED, IncidentStatus.REJECTED)
+            and not is_admin
+        ):
             raise HTTPException(
                 status_code=http_status.HTTP_403_FORBIDDEN,
                 detail="Только администратор может согласовать или отклонить инцидент",

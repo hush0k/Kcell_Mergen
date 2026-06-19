@@ -6,10 +6,10 @@ from fastapi import FastAPI
 from app.auth.router import router as auth_router
 from app.control.router import router as control_router
 from app.db.database import create_schema
-from app.task.router import router as task_router
 from app.incident.router import router as incident_router
-from app.user.router import router as user_router
 from app.mfs.router import router as mfs_router
+from app.task.router import router as task_router
+from app.user.router import router as user_router
 from app.vacation_schedule.router import router as vacation_schedule_router
 
 
@@ -28,7 +28,6 @@ app.include_router(task_router)
 app.include_router(vacation_schedule_router)
 app.include_router(incident_router)
 app.include_router(mfs_router)
-
 
 
 @app.get("/")

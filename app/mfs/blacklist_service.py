@@ -1,4 +1,5 @@
 """Операции с blacklist MSISDN — отдельная PostgreSQL (см. app/mfs/database.py)."""
+
 import re
 from datetime import datetime
 from typing import Any
@@ -6,7 +7,6 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.mfs.enums import Action
 
 _MSISDN_RE = re.compile(r"\d+")
@@ -39,11 +39,13 @@ class MfsBlacklistService:
         for msisdn in msisdns:
             count = await self._count_blocked(msisdn)
             blocked = count > 0
-            results.append({
-                "msisdn": msisdn,
-                "status": "blocked" if blocked else "not_blocked",
-                "message": "В чёрном списке" if blocked else "Не в чёрном списке",
-            })
+            results.append(
+                {
+                    "msisdn": msisdn,
+                    "status": "blocked" if blocked else "not_blocked",
+                    "message": "В чёрном списке" if blocked else "Не в чёрном списке",
+                }
+            )
         return results
 
     async def block(self, msisdns: list[str], author: str) -> list[dict[str, Any]]:
@@ -53,11 +55,13 @@ class MfsBlacklistService:
             try:
                 count = await self._count_blocked(msisdn)
                 if count > 0:
-                    results.append({
-                        "msisdn": msisdn,
-                        "status": "already_blocked",
-                        "message": "Уже в чёрном списке",
-                    })
+                    results.append(
+                        {
+                            "msisdn": msisdn,
+                            "status": "already_blocked",
+                            "message": "Уже в чёрном списке",
+                        }
+                    )
                     continue
 
                 await self.db.execute(
@@ -75,18 +79,22 @@ class MfsBlacklistService:
                     {"msisdn": msisdn, "author": author, "comment": comment},
                 )
                 await self.db.commit()
-                results.append({
-                    "msisdn": msisdn,
-                    "status": "blocked",
-                    "message": "Заблокирован",
-                })
+                results.append(
+                    {
+                        "msisdn": msisdn,
+                        "status": "blocked",
+                        "message": "Заблокирован",
+                    }
+                )
             except Exception as e:
                 await self.db.rollback()
-                results.append({
-                    "msisdn": msisdn,
-                    "status": "error",
-                    "message": str(e),
-                })
+                results.append(
+                    {
+                        "msisdn": msisdn,
+                        "status": "error",
+                        "message": str(e),
+                    }
+                )
         return results
 
     async def unblock(self, msisdns: list[str], author: str) -> list[dict[str, Any]]:
@@ -95,11 +103,13 @@ class MfsBlacklistService:
             try:
                 count = await self._count_blocked(msisdn)
                 if count == 0:
-                    results.append({
-                        "msisdn": msisdn,
-                        "status": "not_found",
-                        "message": "Нет в чёрном списке",
-                    })
+                    results.append(
+                        {
+                            "msisdn": msisdn,
+                            "status": "not_found",
+                            "message": "Нет в чёрном списке",
+                        }
+                    )
                     continue
 
                 await self.db.execute(
@@ -122,22 +132,26 @@ class MfsBlacklistService:
                     {"msisdn": msisdn},
                 )
                 await self.db.commit()
-                results.append({
-                    "msisdn": msisdn,
-                    "status": "unblocked",
-                    "message": "Разблокирован",
-                })
+                results.append(
+                    {
+                        "msisdn": msisdn,
+                        "status": "unblocked",
+                        "message": "Разблокирован",
+                    }
+                )
             except Exception as e:
                 await self.db.rollback()
-                results.append({
-                    "msisdn": msisdn,
-                    "status": "error",
-                    "message": str(e),
-                })
+                results.append(
+                    {
+                        "msisdn": msisdn,
+                        "status": "error",
+                        "message": str(e),
+                    }
+                )
         return results
 
     async def run_action(
-            self, action: Action, raw_text: str, author: str
+        self, action: Action, raw_text: str, author: str
     ) -> tuple[list[str], list[dict[str, Any]], dict[str, int]]:
         msisdns = parse_msisdn_list(raw_text)
         if not msisdns:
@@ -157,7 +171,9 @@ class MfsBlacklistService:
             ok, skipped = len(rows) - err, 0
         else:
             ok = sum(1 for r in rows if r["status"] in ("blocked", "unblocked"))
-            skipped = sum(1 for r in rows if r["status"] in ("already_blocked", "not_found"))
+            skipped = sum(
+                1 for r in rows if r["status"] in ("already_blocked", "not_found")
+            )
 
         summary = {"total": len(rows), "ok": ok, "skipped": skipped, "error": err}
         return msisdns, rows, summary
@@ -167,4 +183,4 @@ class MfsBlacklistService:
             text("SELECT count(*) FROM blacklist.msisdn_list WHERE msisdn = :msisdn"),
             {"msisdn": msisdn},
         )
-        return result.scalar_one()
+        return int(result.scalar_one())
