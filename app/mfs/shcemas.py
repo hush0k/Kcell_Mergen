@@ -9,7 +9,7 @@ from app.mfs.enums import Action
 class MfsAuditBase(BaseModel):
     user_id: int
     username: Annotated[str, Field(min_length=1)]
-    action: Annotated[Action, Field(min_length=1)]
+    action: Action
     msisdns_text: Annotated[str, Field(min_length=1)]
     results_json: list[dict] | None
     summary_ok: Annotated[int, Field(default=0)]
@@ -28,3 +28,10 @@ class MfsAuditResponse(MfsAuditBase):
 class MfsActionRequest(BaseModel):
     action: Action
     msisdns: Annotated[str, Field(min_length=1)]
+
+class MfsActionResponse(BaseModel):
+    action: Action
+    results: list[dict]
+    summary: dict[str, int]
+    audit_id: int | None
+    audit_warning: str | None = None

@@ -1,0 +1,25 @@
+@startuml AS-IS
+
+entity "mfs_audit_log" {
+    * id : Integer <<PK>>
+    --
+    user_id : Integer <<FK>>
+    username : String(64)
+    action : String(16)
+    msisdns_text : Text
+    results_json : Text
+    summary_ok : Integer
+    summary_skipped : Integer
+    summary_error : Integer
+    created_at : DateTime
+}
+
+entity "user" {
+    * id : Integer <<PK>>
+    --
+    ...
+}
+
+mfs_audit_log::user_id }o--|| user::id
+
+@enduml

@@ -1,0 +1,35 @@
+@startuml TO-BE
+
+entity "mfs_audit_log" {
+    * id : Integer <<PK>>
+    --
+    user_id : Integer <<FK>>
+    username : String(64)
+    action : Action <<Enum>>
+    msisdns_text : Text
+    results_json : JSONB
+    summary_ok : Integer
+    summary_skipped : Integer
+    summary_error : Integer
+    created_at : DateTime <<mixin>>
+}
+
+entity "user" {
+    * id : Integer <<PK>>
+    --
+    username : String(64)
+    password_hash : String(256)
+    role : UserRoles <<Enum>>
+}
+
+mfs_audit_log::user_id }o--|| user::id
+
+note right of mfs_audit_log
+  Изменения:
+  1. action: String(16) -> Action <<Enum>>
+  2. results_json: Text (json.dumps) -> JSONB
+  3. created_at: DateTime (naive, default=utcnow) -> DateTime(timezone=True), server_default=func.now()
+  4. updated_at удалён — лог иммутабельный, апдейтов нет
+end note
+
+@enduml

@@ -116,3 +116,27 @@ uv run python seed.py
     - created_date убрал — заменил на created_at/updated_at из TimeStampMixin
     - Денежные поля (estimated_loss, opportunity_loss, bad_debt и т.д.) оставил Numeric(15,2) → Decimal
     - Связь с task через task_id (nullable), relationship task ↔ incidents
+
+## MFS Audit Log
+
+### Что реализовано
+- Модуль `mfs/` с разделением Repository / Service / Router
+- `MfsAuditLog` — журнал операций МФС (block/unblock/check) в основной БД `kcell_web`
+- `MfsBlacklistService` — операции с blacklist MSISDN через отдельную БД (второй async engine, raw SQL через `text()`)
+- `GET /api/v1/mfs_audit_log/` — список логов (admin видит все, обычный пользователь — только свои)
+- `GET /api/v1/mfs_audit_log/{id}` — детали записи, доступ по роли/владельцу (403 при попытке чужого)
+- `POST /api/v1/mfs/action` — выполнение операции (block/unblock/check) + запись в журнал
+
+### Что изменено относительно легаси
+- `action`: `String(16)` → `Enum` (`Action`)
+- `results_json`: `TEXT` + ручной `json.dumps/loads` → `JSONB`
+- `created_at`: naive `DateTime` (UTC вручную) → `DateTime(timezone=True)`, `server_default=func.now()`
+- Убран рантайм-антипаттерн `_ensure_mfs_audit_log_table` — таблица создаётся только через Alembic
+- Исправлен баг легаси в `block`: поиск дубликата по `LIKE '%...'` (полное сканирование) заменён на точное `=` (номер уже нормализован)
+- Подключение к blacklist-БД: синхронный `psycopg2` → асинхронный `asyncpg` через отдельный `mfs_engine`
+- POST-эндпоинт создания лога публично не выставлен — запись пишется только как сайд-эффект `/mfs/action`, чтобы исключить подмену `user_id`/`results`
+
+### Архитектурное решение
+- `mfs_audit_log` иммутабелен: нет `update`/`delete`, нет схемы `MfsAuditUpdate`
+- Сбой записи в журнал не блокирует саму операцию над blacklist — пользователь получает `audit_warning` в ответе (поведение легаси сохранено)
+- `MfsBlacklistService` и `MfsAuditLogService` работают с разными БД через разные `AsyncSession`, без общей транзакции (намеренно — физически разные базы)

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 100 * 12 * 30 * 24 * 60  # 100 лет в минутах
 
     MFS_DATABASE_URL: str
+    MFS_BLACKLIST_AUTHOR: str = "app_fraud"
 
     @property
     def database_url(self) -> str:
