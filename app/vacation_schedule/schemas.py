@@ -1,9 +1,9 @@
-from typing import Annotated
 from datetime import date, datetime
+from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from app.vacation_schedule.enums import VacationType, VacationStatus
+from app.vacation_schedule.enums import VacationStatus, VacationType
 
 UserId = Annotated[int, Field(gt=0)]
 
@@ -15,8 +15,10 @@ class VacationScheduleBase(BaseModel):
     vacation_type: VacationType = VacationType.ANNUAL_LEAVE
     status: VacationStatus = VacationStatus.ACTIVE
 
+
 class VacationScheduleCreate(VacationScheduleBase):
     pass
+
 
 class VacationScheduleUpdate(BaseModel):
     user_id: UserId | None = None
@@ -25,6 +27,7 @@ class VacationScheduleUpdate(BaseModel):
     vacation_type: VacationType | None = None
     status: VacationStatus | None = None
 
+
 class VacationScheduleResponse(VacationScheduleBase):
     user_id: UserId
     created_at: datetime
@@ -32,9 +35,11 @@ class VacationScheduleResponse(VacationScheduleBase):
 
     model_config = {"from_attributes": True}
 
+
 class VacationScheduleRemainingList(BaseModel):
     vacation: VacationScheduleResponse
     days: int
+
 
 # class VacationScheduleFilter(BaseModel):
 #     start_date: date | None = None
@@ -50,7 +55,3 @@ class VacationScheduleRemainingList(BaseModel):
 #     status: VacationStatus | None = None
 #     created_at: date | None = None
 #     updated_at: date | None = None
-
-
-
-

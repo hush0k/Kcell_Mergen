@@ -10,8 +10,8 @@ from app.db.database import Base
 from app.task.enums import TaskStatus
 
 if TYPE_CHECKING:
-    from app.incident.model import Incident
     from app.control.model import Control
+    from app.incident.model import Incident
     from app.user.model import User
 
 
@@ -60,7 +60,7 @@ class Task(Base, TimeStampMixin):
         remote_side=[id],
     )
 
-    incidents: Mapped[list["Incident"]] = relationship(
+    incidents: Mapped[list[Incident]] = relationship(
         back_populates="task",
         cascade="all, delete-orphan",
     )

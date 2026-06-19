@@ -7,8 +7,8 @@ from app.auth.router import router as auth_router
 from app.control.router import router as control_router
 from app.db.database import create_schema
 from app.task.router import router as task_router
-from app.vacation_schedule.router import router as vacation_schedule_router
 from app.user.router import router as user_router
+from app.vacation_schedule.router import router as vacation_schedule_router
 
 
 @asynccontextmanager

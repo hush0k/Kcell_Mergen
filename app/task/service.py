@@ -80,14 +80,20 @@ class TaskService:
         task = Task(**task_in.model_dump(), deadline_time=deadline)
         return await self.repo.create_task(task)
 
-    async def update_task(self, task_id: int, task_in: TaskUpdate, current_user: User) -> Task:
+    async def update_task(
+        self, task_id: int, task_in: TaskUpdate, current_user: User
+    ) -> Task:
         task = await self.repo.get_by_id(task_id)
         if not task:
-            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Задача не найдена")
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND, detail="Задача не найдена"
+            )
 
         control = await self.control_repo.get_by_id(task.control_id)
         if not control:
-            raise HTTPException(http_status.HTTP_404_NOT_FOUND, detail="Контроллер не найден")
+            raise HTTPException(
+                http_status.HTTP_404_NOT_FOUND, detail="Контроллер не найден"
+            )
 
         is_admin = current_user.role == UserRoles.ADMIN
         is_responsible = control.responsible_id == current_user.id
@@ -185,6 +191,11 @@ class TaskService:
             await self.sync_weekend_tasks(task)
 
         control = await self.control_repo.get_by_id(task.control_id)
+        if not control:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Контроллер не найден",
+            )
         if control.frequency == Frequency.BY_QUERY:
             new_task: TaskCreate = TaskCreate(control_id=task.control_id)
             await self.create_task(new_task)
@@ -201,6 +212,9 @@ class TaskService:
         return await self.repo.get_all_with_controls(offset, limit)
 
     async def sync_weekend_tasks(self, task: Task) -> None:
+        if task.weekend_group_id is None:
+            return
+
         tasks: list[Task] = await self.repo.get_tasks_by_weekend_id(
             task.weekend_group_id
         )

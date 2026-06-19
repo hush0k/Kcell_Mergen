@@ -1,5 +1,4 @@
 import enum
-from enum import StrEnum
 
 
 class IncidentStatus(enum.Enum):
@@ -7,6 +6,7 @@ class IncidentStatus(enum.Enum):
     ON_APPROVAL = "На согласовании"
     APPROVED = "Согласован"
     REJECTED = "Отклонён"
+
 
 class ConfirmedFraud(enum.Enum):
     YES = "Да"

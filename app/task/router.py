@@ -127,7 +127,9 @@ async def delete_task(
 
 
 @router.post("/trigger-tasks-generator", status_code=http_status.HTTP_204_NO_CONTENT)
-async def trigger_task_generator(service: ServiceDep, current_user: CurrentUser):
+async def trigger_task_generator(
+    service: ServiceDep, current_user: CurrentUser
+) -> None:
     if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
@@ -146,5 +148,5 @@ async def get_tasks_with_controls(
     _: CurrentUser,
     page: int = 1,
     limit: int = 20,
-):
+) -> list[Task]:
     return await service.get_all_with_controls(page, limit)

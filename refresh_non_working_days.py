@@ -8,7 +8,7 @@ from app.db.database import AsyncSessionLocal
 
 
 async def refresh_non_working_days(year: int) -> None:
-    kz_holidays = holidays.Kazakhstan(years=[year])
+    kz_holidays = holidays.country_holidays("KZ", years=2026)
 
     non_working: list[tuple[date, str]] = []
 

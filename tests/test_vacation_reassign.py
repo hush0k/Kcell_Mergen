@@ -4,13 +4,12 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 
+from app.control.enums import ControlStatus, Frequency
 from app.control.model import Control
-from app.control.enums import Frequency, ControlStatus
-from app.user.model import User
 from app.user.enums import UserRoles
-from app.vacation_schedule.model import VacationSchedule
+from app.user.model import User
 from app.vacation_schedule.enums import VacationStatus, VacationType
-from tests.conftest import TestSessionLocal
+from app.vacation_schedule.model import VacationSchedule
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -77,10 +76,10 @@ async def test_reassign_restores_original_when_vacation_ends(db, setup_data):
     responsible = setup_data["responsible"]
 
     # Заканчиваем отпуск
-    vacation = setup_data.get("vacation")
     await db.execute(
-        text("UPDATE kcell_web.vacation_schedule SET end_date = :d WHERE user_id = :uid")
-        .bindparams(d=date.today() - timedelta(days=1), uid=responsible.id)
+        text(
+            "UPDATE kcell_web.vacation_schedule SET end_date = :d WHERE user_id = :uid"
+        ).bindparams(d=date.today() - timedelta(days=1), uid=responsible.id)
     )
     await db.flush()
 
