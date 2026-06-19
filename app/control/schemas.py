@@ -34,6 +34,7 @@ class ControlUpdate(BaseModel):
     time_estimate: int | None = None
     frequency: Frequency | None = None
     responsible_id: int | None = None
+    original_user_id: int | None = None
     backup_id: int | None = None
     risk: Risk | None = None
     priority: Priority | None = None
@@ -50,6 +51,7 @@ class ControlResponse(BaseModel):
     frequency: Frequency
     responsible_id: int | None
     backup_id: int | None
+    original_user_id: int | None
     risk: str
     priority: str
     dashboard_url: str | None

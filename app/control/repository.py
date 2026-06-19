@@ -53,7 +53,8 @@ class ControlRepository:
         return list(results.scalars().all())
 
     async def create(self, control_in: ControlCreate) -> Control:
-        control = Control(**control_in.model_dump())
+        original_user_id = control_in.responsible_id
+        control = Control(**control_in.model_dump(), original_user_id=original_user_id)
         self.db.add(control)
         return await self._save_control(control)
 

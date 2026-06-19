@@ -1,5 +1,8 @@
+from datetime import datetime
+from os.path import exists
+
 from fastapi import HTTPException, status as http_status
-from sqlalchemy import select
+from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.user.enums import UserRoles
@@ -79,9 +82,23 @@ class VacationScheduleService:
         return VacationScheduleRemainingList(
             vacations=[VacationScheduleResponse.model_validate(v) for v in vacations_list],
             days=len(vacations_list)
+        )
+
+    async def _check_for_vacation(self, user_id: int) -> bool:
+        return bool(await self.db.scalar(
+            select(
+                exists().where(
+                    and_(
+                        VacationSchedule.user_id == user_id,
+                        VacationSchedule.status == VacationStatus.ACTIVE,
+                        VacationSchedule.start_date <= func.current_date(),
+                        VacationSchedule.end_date >= func.current_date(),
+                        )
+                )
+            )
+        ))
 
 
-)
 
 
 

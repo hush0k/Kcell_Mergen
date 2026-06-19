@@ -34,6 +34,9 @@ class Control(Base, TimeStampMixin):
     backup_id: Mapped[int] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
     )
+    original_user_id: Mapped[int] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
+    )
     risk: Mapped[str] = mapped_column(String(64), default="0")
     priority: Mapped[str] = mapped_column(String(32), default="0")
     dashboard_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
@@ -50,3 +53,4 @@ class Control(Base, TimeStampMixin):
     # Relationships
     responsible: Mapped[User] = relationship("User", foreign_keys=[responsible_id])
     backup: Mapped[User] = relationship("User", foreign_keys=[backup_id])
+    original: Mapped[User] = relationship("User", foreign_keys=[original_user_id])

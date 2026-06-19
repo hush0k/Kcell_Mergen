@@ -85,3 +85,5 @@ uv run python seed.py
 
 ## Holidays
  - Создал новую таблицу non_working_days где хранятся праздничные дни и суббота-воскресенье
+
+## Vacation 
