@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 100 * 12 * 30 * 24 * 60  # 100 лет в минутах
 
+    MFS_DATABASE_URL: str
+
     @property
     def database_url(self) -> str:
         return (
