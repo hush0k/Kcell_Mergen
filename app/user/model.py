@@ -1,10 +1,15 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, Enum, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import settings
 from app.core.mixins import TimeStampMixin
 from app.db.database import Base
 from app.user.enums import UserRoles
+
+if TYPE_CHECKING:
+    from app.notification.model import NotificationRecipient
 
 
 class User(Base, TimeStampMixin):
@@ -13,6 +18,7 @@ class User(Base, TimeStampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(256), nullable=False)
     role: Mapped[UserRoles] = mapped_column(
         Enum(UserRoles, schema=settings.POSTGRES_SCHEMA, name="userroles"),
@@ -22,3 +28,5 @@ class User(Base, TimeStampMixin):
     is_og: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
+
+    notification_recipients: Mapped[list["NotificationRecipient"]] = relationship("NotificationRecipient", back_populates="user")
