@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -8,6 +9,7 @@ from app.control.router import router as control_router
 from app.db.database import create_schema
 from app.incident.router import router as incident_router
 from app.mfs.router import router as mfs_router
+from app.notification.listener import pg_notify_listener
 from app.task.router import router as task_router
 from app.user.router import router as user_router
 from app.vacation_schedule.router import router as vacation_schedule_router
@@ -17,6 +19,13 @@ from app.vacation_schedule.router import router as vacation_schedule_router
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await create_schema()
     yield
+    task = asyncio.create_task(pg_notify_listener())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(lifespan=lifespan)
