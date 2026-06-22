@@ -5,7 +5,7 @@ import logging
 import asyncpg
 
 from app.core.config import settings
-from app.db.database import async_session_maker
+from app.db.database import AsyncSessionLocal as async_session_maker
 from app.notification.connection_manager import manager
 from app.notification.repository import NotificationRepository
 
@@ -49,7 +49,7 @@ async def handle_new_notification(notification_id: int) -> None:
 
 async def pg_notify_listener() -> None:
     """Фоновая задача: слушает pg_notify и вызывает обработчик."""
-    conn = await asyncpg.connect(settings.DATABASE_URL.replace("+asyncpg", ""))
+    conn = await asyncpg.connect(settings.database_url.replace("+asyncpg", ""))
 
     async def callback(connection, pid, channel, payload):
         try:

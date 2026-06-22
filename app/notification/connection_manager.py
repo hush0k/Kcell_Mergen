@@ -22,7 +22,7 @@ class ConnectionManager:
         for websocket in connections:
             await websocket.send_json(message)
 
-    async def is_online(self, user_id: int) -> bool:
+    def is_online(self, user_id: int) -> bool:
         return user_id in self._connections
 
 manager = ConnectionManager()
