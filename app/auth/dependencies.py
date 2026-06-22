@@ -19,8 +19,10 @@ async def get_current_user(
     return await auth_service.get_current_user(credentials)
 
 async def get_current_user_by_token(token: str, db: AsyncSession) -> User | None:
+    from app.auth.jwt import AuthService
     try:
         auth_service = AuthService(db)
+        from fastapi.security import HTTPAuthorizationCredentials
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
         return await auth_service.get_current_user(credentials)
     except Exception:
