@@ -9,7 +9,7 @@ from app.user.schemas import UserResponse
 class NotificationResponse(BaseModel):
     id: int
     notification_type: NotificationTypes
-    responsible_user_id: int
+    responsible_user_id: int | None
     sender: str
     title: str | None
     html_content: str
@@ -17,6 +17,14 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+class NotificationCreate(BaseModel):
+    notification_type: NotificationTypes = NotificationTypes.TASK_CREATED
+    sender: str
+    title: str | None
+    html_content: str
+    error_message: str | None
+    recipients_email: str | None
 
 
 class NotificationRecipientResponse(BaseModel):

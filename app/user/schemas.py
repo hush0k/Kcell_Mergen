@@ -25,6 +25,7 @@ def validate_strong_password(password: str) -> str:
 class UserBase(BaseModel):
     username: Username
     role: UserRoles
+    email: str
     is_og: bool
 
 
@@ -40,6 +41,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     username: Username | None = None
     role: UserRoles
+    email: str | None = None
     is_og: bool | None = None
 
 

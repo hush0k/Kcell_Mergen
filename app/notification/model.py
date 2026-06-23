@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, Enum, String, ForeignKey, Boolean, DateTime, Text
+from sqlalchemy import Integer, Enum, String, ForeignKey, Boolean, DateTime, Text, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.core.config import settings
@@ -44,7 +44,10 @@ class Notification(Base, TimeStampMixin):
 
 class NotificationRecipient(Base):
     __tablename__ = "notification_recipient"
-    __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
+    __table_args__ = (
+        UniqueConstraint("notification_id", "recipient_id", name="uq_notification_recipient"),
+        {"schema": settings.POSTGRES_SCHEMA},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     notification_id: Mapped[int] = mapped_column(
@@ -53,11 +56,12 @@ class NotificationRecipient(Base):
     )
     recipient_id: Mapped[int] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=False, default=None
     )
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
     notification: Mapped["Notification"] = relationship(
         "Notification", back_populates="recipients"
     )

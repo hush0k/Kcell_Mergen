@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.notification.connection_manager import manager
 from app.notification.model import Notification, NotificationRecipient
 from app.notification.repository import NotificationRepository
-from app.notification.schemas import NotificationRecipientResponse, UnreadCountResponse
+from app.notification.schemas import NotificationRecipientResponse, UnreadCountResponse, NotificationCreate
 
 
 class NotificationService:
@@ -58,4 +59,19 @@ class NotificationService:
         if not is_recipient:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Не достаточно прав для совершение операции")
 
-        return await self.repo.become_responsible_user(notification, user_id)
+        notification = await self.repo.become_responsible_user(notification, user_id)
+
+        recipient_ids = await self.repo.get_recipients_ids(notification_id)
+
+        for rid in recipient_ids:
+            if manager.is_online(rid):
+                await manager.send_to_user(rid, {
+                    "type": "User take task",
+                    "notification_id": notification_id,
+                    "user_id": user_id,
+                })
+
+        return notification
+
+    async def create_notification(self, not_in: NotificationCreate) -> Notification:
+        return await self.repo.create(not_in)

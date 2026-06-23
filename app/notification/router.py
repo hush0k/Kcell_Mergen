@@ -12,7 +12,7 @@ from app.notification.model import Notification
 from app.notification.schemas import (
     NotificationRecipientResponse,
     NotificationReadResponse,
-    UnreadCountResponse, NotificationResponse,
+    UnreadCountResponse, NotificationResponse, NotificationCreate,
 )
 from app.notification.service import NotificationService
 from app.user.model import User
@@ -69,6 +69,14 @@ async def become_responsible_user(
         current_user: User = Depends(get_current_user),
 ) -> Notification:
     return await service.become_responsible_user(notification_id, current_user.id)
+
+@router.post("/", response_model=NotificationResponse)
+async def create_notification_endpoint(
+        service: ServiceDep,
+        notification_in: NotificationCreate,
+        _: User = Depends(get_current_user),
+) -> Notification:
+    return await service.create_notification(notification_in)
 
 @router.websocket("/ws")
 async def websocket_endpoint(

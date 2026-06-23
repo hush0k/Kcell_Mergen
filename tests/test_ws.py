@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 
-JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgyMTk2NDE1LCJ0eXBlIjoiYWNjZXNzIn0.gIV8h9ZXPb42eU1dTAlpXYZzWCQOz1jeETyeKO6DFRo"
+JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgyMjA1NTIyLCJ0eXBlIjoiYWNjZXNzIn0.PRdHTh2bUr5bVUN8VAwFHPCd3D4ZMl34Ceiy1xOKWB8"
 
 async def test():
     uri = f"ws://localhost:8000/api/v1/notifications/ws?token={JWT}"
