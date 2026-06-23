@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 interface Vacation {
   id: number;
   user_id: number;
-  username: string;
   start_date: string;
   end_date: string;
   vacation_type: string;
@@ -29,8 +28,8 @@ const VacationSchedule: React.FC = () => {
     user_id: '',
     start_date: '',
     end_date: '',
-    vacation_type: 'отпуск',
-    status: 'active'
+    vacation_type: 'ANNUAL_LEAVE',
+    status: 'ACTIVE'
   });
 
   useEffect(() => {
@@ -40,7 +39,7 @@ const VacationSchedule: React.FC = () => {
 
   const fetchVacations = async () => {
     try {
-      const response = await fetch('/api/vacation-schedule', {
+      const response = await fetch('/api/v1/vacation-schedule/?limit=1000', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -58,7 +57,7 @@ const VacationSchedule: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users', {
+      const response = await fetch('/api/v1/user/?limit=1000', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -75,11 +74,11 @@ const VacationSchedule: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const url = editingVacation 
-      ? `/api/vacation-schedule/${editingVacation.id}`
-      : '/api/vacation-schedule';
-    
-    const method = editingVacation ? 'PUT' : 'POST';
+    const url = editingVacation
+      ? `/api/v1/vacation-schedule/${editingVacation.id}`
+      : '/api/v1/vacation-schedule/';
+
+    const method = editingVacation ? 'PATCH' : 'POST';
     
     try {
       const response = await fetch(url, {
@@ -98,13 +97,13 @@ const VacationSchedule: React.FC = () => {
           user_id: '',
           start_date: '',
           end_date: '',
-          vacation_type: 'отпуск',
-          status: 'active'
+          vacation_type: 'ANNUAL_LEAVE',
+          status: 'ACTIVE'
         });
         fetchVacations();
       } else {
         const error = await response.json();
-        alert(error.error || 'Error saving vacation schedule');
+        alert(error.detail || 'Error saving vacation schedule');
       }
     } catch (error) {
       console.error('Error saving vacation:', error);
@@ -130,7 +129,7 @@ const VacationSchedule: React.FC = () => {
     }
     
     try {
-      const response = await fetch(`/api/vacation-schedule/${id}`, {
+      const response = await fetch(`/api/v1/vacation-schedule/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -149,17 +148,29 @@ const VacationSchedule: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'active' ? 'text-green-600' : 'text-red-600';
+    return status === 'ACTIVE' ? 'text-green-600' : 'text-red-600';
   };
 
   const getVacationTypeColor = (type: string) => {
     switch (type) {
-      case 'отпуск': return 'text-blue-600';
-      case 'больничный': return 'text-red-600';
-      case 'командировка': return 'text-purple-600';
+      case 'ANNUAL_LEAVE': return 'text-blue-600';
+      case 'SICK_LEAVE': return 'text-red-600';
+      case 'BUSINESS_TRIP': return 'text-purple-600';
       default: return 'text-gray-600';
     }
   };
+
+  const getVacationTypeLabel = (type: string) => {
+    switch (type) {
+      case 'ANNUAL_LEAVE': return 'Отпуск';
+      case 'SICK_LEAVE': return 'Больничный';
+      case 'BUSINESS_TRIP': return 'Командировка';
+      default: return type;
+    }
+  };
+
+  const getUsername = (userId: number) =>
+    users.find(u => u.id === userId)?.username || `#${userId}`;
 
   if (loading) {
     return (
@@ -185,8 +196,8 @@ const VacationSchedule: React.FC = () => {
                   user_id: '',
                   start_date: '',
                   end_date: '',
-                  vacation_type: 'отпуск',
-                  status: 'active'
+                  vacation_type: 'ANNUAL_LEAVE',
+                  status: 'ACTIVE'
                 });
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
@@ -230,9 +241,9 @@ const VacationSchedule: React.FC = () => {
                       onChange={(e) => setFormData({...formData, vacation_type: e.target.value})}
                       className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
-                      <option value="отпуск">Отпуск</option>
-                      <option value="больничный">Больничный</option>
-                      <option value="командировка">Командировка</option>
+                      <option value="ANNUAL_LEAVE">Отпуск</option>
+                      <option value="SICK_LEAVE">Больничный</option>
+                      <option value="BUSINESS_TRIP">Командировка</option>
                     </select>
                   </div>
                   
@@ -271,8 +282,8 @@ const VacationSchedule: React.FC = () => {
                       onChange={(e) => setFormData({...formData, status: e.target.value})}
                       className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
-                      <option value="active">Активный</option>
-                      <option value="cancelled">Отменен</option>
+                      <option value="ACTIVE">Активный</option>
+                      <option value="CANCELLED">Отменен</option>
                     </select>
                   </div>
                 </div>
@@ -327,11 +338,11 @@ const VacationSchedule: React.FC = () => {
                 {vacations.map((vacation) => (
                   <tr key={vacation.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {vacation.username}
+                      {getUsername(vacation.user_id)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`font-medium ${getVacationTypeColor(vacation.vacation_type)}`}>
-                        {vacation.vacation_type}
+                        {getVacationTypeLabel(vacation.vacation_type)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -342,7 +353,7 @@ const VacationSchedule: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`font-medium ${getStatusColor(vacation.status)}`}>
-                        {vacation.status === 'active' ? 'Активный' : 'Отменен'}
+                        {vacation.status === 'ACTIVE' ? 'Активный' : 'Отменен'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

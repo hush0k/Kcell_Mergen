@@ -139,22 +139,17 @@ export const IncidentForm: React.FC<IncidentFormProps> = ({ taskId, incidentData
         }
     }
     
-    const formData = new FormData();
-    if (file) {
-      formData.append('file', file);
-    }
-    formData.append('data', JSON.stringify(incident));
-
     const token = localStorage.getItem('token');
-    const url = isEditMode && incident.id ? `/api/incidents/${incident.id}` : '/api/incidents';
-    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode && incident.id ? `/api/v1/incidents/${incident.id}` : '/api/v1/incidents/';
+    const method = isEditMode ? 'PATCH' : 'POST';
 
     const response = await fetch(url, {
         method: method,
         headers: {
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: formData
+        body: JSON.stringify(incident)
     });
 
     setLoading(false);
@@ -164,7 +159,7 @@ export const IncidentForm: React.FC<IncidentFormProps> = ({ taskId, incidentData
         onClose();
     } else {
         const errData = await response.json();
-        setError(errData.msg || 'Произошла ошибка');
+        setError(errData.detail || 'Произошла ошибка');
     }
   };
 
@@ -334,10 +329,10 @@ export const IncidentForm: React.FC<IncidentFormProps> = ({ taskId, incidentData
                     Отправить на согласование
                 </Button>
             )}
-            {isEditMode && userRole === 'admin' && incident.status === 'На согласовании' && (
+            {isEditMode && userRole === 'ADMIN' && incident.status === 'На согласовании' && (
                 <div className="flex gap-2">
                     <Button type="button" onClick={() => handleStatusChangeClick('Согласован')} variant="primary">Согласовать</Button>
-                    <Button type="button" onClick={() => handleStatusChangeClick('Отклонен')} variant="danger">Отклонить</Button>
+                    <Button type="button" onClick={() => handleStatusChangeClick('Отклонён')} variant="danger">Отклонить</Button>
                 </div>
             )}
         </div>

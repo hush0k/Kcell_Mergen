@@ -31,7 +31,9 @@ interface AuditRow {
   username: string;
   action: string;
   msisdns_text: string;
-  summary: { ok: number; skipped: number; error: number };
+  summary_ok: number;
+  summary_skipped: number;
+  summary_error: number;
   created_at: string | null;
 }
 
@@ -134,7 +136,7 @@ export const Mfs: React.FC = () => {
   const handleAuthError = (res: Response, data: { msg?: string; detail?: string }) => {
     if (res.status === 401 || res.status === 422) {
       setError(
-        data.msg ||
+        data.detail || data.msg ||
           "Сессия недействительна (часто после смены .env или входа на другом порту). Выйдите и войдите снова на :5000."
       );
       return true;
@@ -147,18 +149,21 @@ export const Mfs: React.FC = () => {
     return parts.join(" — ") || "Ошибка операции";
   };
 
+  // /api/mfs/status не реализован в новом бэкенде — нет эндпоинта проверки
+  // конфигурации blacklist/Atlas. Блокировку/разблокировку/проверку номеров
+  // (/api/v1/mfs/action) это не блокирует, поэтому при недоступности статуса
+  // не помечаем blacklist как "не настроен" (см. итоговый отчёт по интеграции).
   const loadStatus = useCallback(async () => {
     try {
       const res = await fetch("/api/mfs/status", { headers: apiHeaders() });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (handleAuthError(res, data)) {
-          setConfigured(false);
           setAtlasConfigured(false);
           return;
         }
-        setConfigured(false);
-        setConfigHint(data.msg || "Ошибка проверки МФС");
+        setAtlasConfigured(false);
+        setConfigHint(data.detail || data.msg || "Ошибка проверки МФС");
         return;
       }
       setConfigured(!!data.configured);
@@ -169,7 +174,6 @@ export const Mfs: React.FC = () => {
         setNoteTemplates(data.note_templates);
       }
     } catch {
-      setConfigured(false);
       setAtlasConfigured(false);
       setConfigHint("Не удалось проверить настройку");
     }
@@ -178,7 +182,7 @@ export const Mfs: React.FC = () => {
   const loadAudit = useCallback(async () => {
     setAuditLoading(true);
     try {
-      const res = await fetch("/api/mfs/audit?limit=30", { headers: apiHeaders() });
+      const res = await fetch("/api/v1/mfs/?limit=30", { headers: apiHeaders() });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (handleAuthError(res, data)) return;
@@ -208,10 +212,10 @@ export const Mfs: React.FC = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/mfs/action", {
+      const res = await fetch("/api/v1/mfs/action", {
         method: "POST",
         headers: apiHeaders(true),
-        body: JSON.stringify({ action, msisdns: text }),
+        body: JSON.stringify({ action: action.toUpperCase(), msisdns: text }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -272,12 +276,12 @@ export const Mfs: React.FC = () => {
 
   const actionLabel = (a: string) => {
     const map: Record<string, string> = {
-      block: "Блокировка",
-      unblock: "Разблокировка",
-      check: "Проверка",
-      note_add_full: "Комментарий (полный)",
-      note_add_short: "Комментарий (краткий)",
-      note_delete: "Удаление комментария",
+      BLOCK: "Блокировка",
+      UNBLOCK: "Разблокировка",
+      CHECK: "Проверка",
+      NOTE_ADD_FULL: "Комментарий (полный)",
+      NOTE_ADD_SHORT: "Комментарий (краткий)",
+      NOTE_DELETE: "Удаление комментария",
     };
     return map[a] || a;
   };
@@ -344,7 +348,7 @@ export const Mfs: React.FC = () => {
         <Button
           type="button"
           onClick={runAction}
-          disabled={loading || configured === false}
+          disabled={loading}
           variant={action === "unblock" ? "secondary" : action === "block" ? "danger" : "primary"}
         >
           {loading ? "Выполняется…" : ACTION_LABELS[action]}
@@ -476,8 +480,8 @@ export const Mfs: React.FC = () => {
                     <td className="py-2 pr-3">{row.username}</td>
                     <td className="py-2 pr-3">{actionLabel(row.action)}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">
-                      OK {row.summary?.ok ?? 0} / проп. {row.summary?.skipped ?? 0} / ош.{" "}
-                      {row.summary?.error ?? 0}
+                      OK {row.summary_ok ?? 0} / проп. {row.summary_skipped ?? 0} / ош.{" "}
+                      {row.summary_error ?? 0}
                     </td>
                     <td className="py-2 font-mono text-xs max-w-md truncate" title={row.msisdns_text}>
                       {row.msisdns_text.replace(/\n/g, ", ")}

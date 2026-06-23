@@ -22,8 +22,6 @@ interface Control {
   priority: string;
   dashboard_url?: string;
   status?: string;
-  responsible_name?: string;
-  backup_name?: string;
 }
 
 interface User {
@@ -37,8 +35,7 @@ const frequencies = [
   "еженедельно",
   "ежемесячно",
   "ежеквартально",
-  "полугодично",
-  "по требованию",
+  "по запросу",
 ];
 
 function deadlineToDatetimeLocal(iso: string | null | undefined): string {
@@ -83,7 +80,7 @@ export const Controls: React.FC = () => {
     risk: "",
     priority: "",
     dashboard_url: "",
-    status: "active"
+    status: "ACTIVE"
   });
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -104,7 +101,7 @@ export const Controls: React.FC = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     setLoading(true);
-    fetch("/api/controls", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/v1/controls/?per_page=1000", { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => Array.isArray(data) ? setControls(data) : setControls([]))
       .catch(() => setError("Ошибка загрузки контролей"))
@@ -114,7 +111,7 @@ export const Controls: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    fetch("/api/users", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/v1/user/?limit=1000", { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
         if (!res.ok) throw new Error(res.status.toString());
         return res.json();
@@ -159,14 +156,14 @@ export const Controls: React.FC = () => {
         setAlert('Контроли успешно импортированы');
         setShowImport(false);
         // Обновляем список контролей
-        const controlsResponse = await fetch("/api/controls", { 
-          headers: { Authorization: `Bearer ${token}` } 
+        const controlsResponse = await fetch("/api/v1/controls/?per_page=1000", {
+          headers: { Authorization: `Bearer ${token}` }
         });
         const controlsData = await controlsResponse.json();
         setControls(Array.isArray(controlsData) ? controlsData : []);
       } else {
         const errorData = await response.json();
-        setAlert(`Ошибка импорта: ${errorData.msg}`);
+        setAlert(`Ошибка импорта: ${errorData.detail}`);
       }
     } catch (err) {
       setAlert('Ошибка при загрузке файла');
@@ -189,7 +186,7 @@ export const Controls: React.FC = () => {
       risk: control.risk,
       priority: control.priority,
       dashboard_url: control.dashboard_url || "",
-      status: control.status || "active"
+      status: control.status || "ACTIVE"
     });
     setEditId(control.id);
     setShowForm(true);
@@ -205,7 +202,7 @@ export const Controls: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Удалить контроль?')) return;
     const token = localStorage.getItem("token");
-    await fetch(`/api/controls/${id}`, {
+    await fetch(`/api/v1/controls/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -239,8 +236,8 @@ export const Controls: React.FC = () => {
         body = { ...form };
       }
       if (editId) {
-        res = await fetch(`/api/controls/${editId}`, {
-          method: "PUT",
+        res = await fetch(`/api/v1/controls/${editId}`, {
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -248,7 +245,7 @@ export const Controls: React.FC = () => {
           body: JSON.stringify(body),
         });
       } else {
-        res = await fetch("/api/controls", {
+        res = await fetch("/api/v1/controls/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -259,7 +256,7 @@ export const Controls: React.FC = () => {
       }
       if (!res.ok) {
         const data = await res.json();
-        setFormError(data.msg || "Ошибка сохранения контроля");
+        setFormError(data.detail || "Ошибка сохранения контроля");
         setSaving(false);
         return;
       }
@@ -277,12 +274,12 @@ export const Controls: React.FC = () => {
         risk: "",
         priority: "",
         dashboard_url: "",
-        status: "active"
+        status: "ACTIVE"
       });
       setAlert(editId ? 'Контроль обновлён' : 'Контроль создан');
       setTimeout(() => setAlert(null), 2000);
       // обновить список контролей
-      fetch("/api/controls", { headers: { Authorization: `Bearer ${token}` } })
+      fetch("/api/v1/controls/?per_page=1000", { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => Array.isArray(data) ? setControls(data) : setControls([]));
     } catch {
@@ -305,7 +302,7 @@ export const Controls: React.FC = () => {
       risk: "",
       priority: "",
       dashboard_url: "",
-      status: "active"
+      status: "ACTIVE"
     });
     setEditId(null);
     setShowForm(true);
@@ -468,12 +465,12 @@ export const Controls: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Статус</label>
             <select
               name="status"
-              value={form.status || 'active'}
+              value={form.status || 'ACTIVE'}
               onChange={handleFormChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
-              <option value="active">Активный</option>
-              <option value="suspended">Приостановлен</option>
+              <option value="ACTIVE">Активный</option>
+              <option value="SUSPENDED">Приостановлен</option>
             </select>
           </div>
           {formError && <p className="text-red-500 text-sm">{formError}</p>}
@@ -553,15 +550,15 @@ export const Controls: React.FC = () => {
                   {isLiteB2b ? formatDeadlineRu(control.deadline_at) : control.frequency}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {control.responsible_name || 'Не назначен'}
+                  {users.find(u => u.id === control.responsible_id)?.username || 'Не назначен'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    control.status === 'active' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                    control.status === 'ACTIVE'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                   }`}>
-                    {control.status === 'active' ? 'Активный' : 'Приостановлен'}
+                    {control.status === 'ACTIVE' ? 'Активный' : 'Приостановлен'}
                   </span>
                 </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

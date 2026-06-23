@@ -34,7 +34,7 @@ export interface Incident {
     count_fraudulent_numbers?: number;
     case_type: string;
     attachment?: string;
-    created_date: string;
+    created_at: string;
     kpi_calculation?: number;
     confirmed_fraud?: string;
     task_id: number;
@@ -63,7 +63,7 @@ export const Incidents: React.FC = () => {
 
         try {
             setLoading(true);
-            const response = await fetch('/api/incidents', {
+            const response = await fetch('/api/v1/incidents/?limit=1000', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -102,7 +102,7 @@ export const Incidents: React.FC = () => {
                 }
                 
                 // Фильтр по дате
-                const incidentDate = incident.created_date.split('T')[0];
+                const incidentDate = incident.created_at.split('T')[0];
                 if (dateFromFilter && incidentDate < dateFromFilter) {
                     return false;
                 }
@@ -142,8 +142,8 @@ export const Incidents: React.FC = () => {
 
         const token = localStorage.getItem('token');
         try {
-            const response = await fetch(`/api/incidents/${selectedIncident.id}`, {
-                method: 'PUT',
+            const response = await fetch(`/api/v1/incidents/${selectedIncident.id}/status`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
@@ -153,7 +153,7 @@ export const Incidents: React.FC = () => {
 
             if (!response.ok) {
                  const errData = await response.json();
-                throw new Error(errData.msg || 'Не удалось изменить статус');
+                throw new Error(errData.detail || 'Не удалось изменить статус');
             }
 
             alert(`Статус инцидента изменен на "${newStatus}"`);
@@ -192,7 +192,7 @@ export const Incidents: React.FC = () => {
                             <option value="Открыт">Открыт</option>
                             <option value="На согласовании">На согласовании</option>
                             <option value="Согласован">Согласован</option>
-                            <option value="Отклонен">Отклонен</option>
+                            <option value="Отклонён">Отклонён</option>
                         </Select>
                     </div>
                     <div>
@@ -234,7 +234,7 @@ export const Incidents: React.FC = () => {
                                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{incident.incident_name}</td>
                                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{incident.status}</td>
                                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{incident.username}</td>
-                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{new Date(incident.created_date).toLocaleDateString()}</td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{new Date(incident.created_at).toLocaleDateString()}</td>
                                     <td className="px-3 py-4 whitespace-nowrap text-sm text-center">
                                         <Button onClick={() => handleViewClick(incident)} variant="secondary" size="sm">Просмотр</Button>
                                     </td>

@@ -19,21 +19,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.msg || "Ошибка входа");
+        setError(data.detail || "Ошибка входа");
         setLoading(false);
         return;
       }
       const resData = await res.json();
+      const meRes = await fetch("/api/v1/auth/me", {
+        headers: { Authorization: `Bearer ${resData.access_token}` },
+      });
+      const me = await meRes.json();
       localStorage.setItem("token", resData.access_token);
-      localStorage.setItem("username", resData.username);
-      localStorage.setItem("role", resData.role);
+      localStorage.setItem("refresh_token", resData.refresh_token);
+      localStorage.setItem("username", me.username);
+      localStorage.setItem("role", me.role);
       onLogin(resData.access_token);
       navigate("/dashboard");
     } catch (err) {

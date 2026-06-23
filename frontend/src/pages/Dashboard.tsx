@@ -27,12 +27,10 @@ interface Task {
   date: string;
   /** ISO: когда запись задачи появилась в БД (важно для разовых с дедлайном) */
   created_at?: string | null;
-  createdAt?: string | null;
   status: string;
   start_time: string | null;
   end_time: string | null;
   comments: string | null;
-  incident_ids: number[];
   weekend_group_id: number | null;
   weekend_related_tasks: Array<{
     id: number;
@@ -41,6 +39,71 @@ interface Task {
   }>;
   control: Control;
   assignee: User | null;
+}
+
+/**
+ * Backend (/api/v1/tasks/, /api/v1/controls/) возвращает плоские объекты
+ * (control_id, user_id вместо вложенных control/assignee, deadline_time вместо date).
+ * Джойним на клиенте, чтобы не трогать остальную бизнес-логику страницы,
+ * которая написана в терминах task.date / task.control.* / task.assignee.
+ */
+function buildTasks(rawTasks: any[], rawControls: any[], rawUsers: any[]): Task[] {
+  const userById = new Map<number, User>(rawUsers.map((u: any) => [u.id, { id: u.id, username: u.username }]));
+  const controlById = new Map<number, Control>(
+    rawControls.map((c: any) => [
+      c.id,
+      {
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        frequency: c.frequency,
+        deadline_at: null, // поле есть только в "lite" B2B-режиме, у основного Control в новом бэке отсутствует
+        responsible: c.responsible_id != null ? userById.get(c.responsible_id) ?? null : null,
+        dashboard_url: c.dashboard_url,
+        priority: c.priority,
+        risk: c.risk,
+      },
+    ])
+  );
+
+  const enriched: Task[] = rawTasks.map((t: any) => ({
+    id: t.id,
+    date: t.deadline_time,
+    created_at: t.created_at,
+    status: t.status,
+    start_time: t.start_time,
+    end_time: t.end_time,
+    comments: t.comments,
+    weekend_group_id: t.weekend_group_id,
+    weekend_related_tasks: [],
+    control: controlById.get(t.control_id) ?? {
+      id: t.control_id,
+      name: "—",
+      area: "",
+      responsible: null,
+    },
+    assignee: t.user_id != null ? userById.get(t.user_id) ?? null : null,
+  }));
+
+  // Группируем по weekend_group_id: все задачи "выходного" блока (сб/вс) делят
+  // одно значение weekend_group_id, равное id "якорной" задачи на понедельник.
+  const byWeekendGroup = new Map<number, Task[]>();
+  for (const t of enriched) {
+    if (t.weekend_group_id != null) {
+      const arr = byWeekendGroup.get(t.weekend_group_id) ?? [];
+      arr.push(t);
+      byWeekendGroup.set(t.weekend_group_id, arr);
+    }
+  }
+  for (const t of enriched) {
+    if (t.weekend_group_id != null) {
+      t.weekend_related_tasks = (byWeekendGroup.get(t.weekend_group_id) ?? [])
+        .filter((rt) => rt.id !== t.id)
+        .map((rt) => ({ id: rt.id, date: rt.date, status: rt.status }));
+    }
+  }
+
+  return enriched;
 }
 
 // Интерфейс для фильтров
@@ -113,18 +176,18 @@ export const Dashboard: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'not_started':
+      case 'NOT_STARTED':
         return 'Не начата';
-      case 'in_progress':
+      case 'IN_PROGRESS':
         return 'В процессе';
-      case 'completed':
+      case 'COMPLETED':
         return 'Выполнена';
       default:
         return status;
     }
   };
 
-  const fetchTasks = () => {
+  const fetchTasks = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
         setLoading(false);
@@ -132,18 +195,28 @@ export const Dashboard: React.FC = () => {
         return;
     }
     setLoading(true);
-    fetch("/api/tasks", { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Ошибка сети или сервера');
-        }
-        return res.json();
-      })
-      .then(data => {
-        setTasks(data);
-      })
-      .catch(() => setError("Ошибка загрузки задач"))
-      .finally(() => setLoading(false));
+    setError("");
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [tasksRes, controlsRes, usersRes] = await Promise.all([
+        fetch("/api/v1/tasks/?limit=1000", { headers }),
+        fetch("/api/v1/controls/?per_page=1000", { headers }),
+        fetch("/api/v1/user/?limit=1000", { headers }),
+      ]);
+      if (!tasksRes.ok || !controlsRes.ok || !usersRes.ok) {
+        throw new Error('Ошибка сети или сервера');
+      }
+      const [rawTasks, rawControls, rawUsers] = await Promise.all([
+        tasksRes.json(),
+        controlsRes.json(),
+        usersRes.json(),
+      ]);
+      setTasks(buildTasks(rawTasks, rawControls, rawUsers));
+    } catch {
+      setError("Ошибка загрузки задач");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -160,7 +233,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const formatTaskCreated = (task: Task) => {
-    const raw = (task.created_at ?? task.createdAt ?? "").trim();
+    const raw = (task.created_at ?? "").trim();
     if (!raw) return "—";
     const d = new Date(raw.includes("T") || raw.includes(" ") ? raw.replace(" ", "T") : `${raw}T12:00:00`);
     if (Number.isNaN(d.getTime())) return "—";
@@ -191,11 +264,17 @@ export const Dashboard: React.FC = () => {
 
   const handleStatus = async (task: Task, status: string) => {
     const token = localStorage.getItem("token");
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status })
-    });
+    if (status === 'IN_PROGRESS') {
+      await fetch(`/api/v1/tasks/${task.id}/start`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } else if (status === 'COMPLETED') {
+      await fetch(`/api/v1/tasks/${task.id}/complete`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
     // обновить задачи
     fetchTasks();
   };
@@ -203,8 +282,8 @@ export const Dashboard: React.FC = () => {
   const handleCommentSave = async (task: Task) => {
     setSavingComment(c => ({ ...c, [task.id]: true }));
     const token = localStorage.getItem("token");
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
+    await fetch(`/api/v1/tasks/${task.id}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ comments: commentEdit[task.id] })
     });
@@ -222,7 +301,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   // 2. Разделение задач на категории
-  const inProgress = useMemo(() => tasks.filter(t => t.status === 'in_progress'), [tasks]);
+  const inProgress = useMemo(() => tasks.filter(t => t.status === 'IN_PROGRESS'), [tasks]);
   
   // Задачи к выполнению: только ежедневные на сегодня (+ lite «разово»). Еженедельные/месячные и т.д.
   // с датой «сегодня» (напр. понедельник) не попадают сюда — иначе выглядят как «сломали» и дублируют смысл вкладок.
@@ -264,34 +343,34 @@ export const Dashboard: React.FC = () => {
     
     // Разовые (lite / B2B): просрочка по дате-времени дедлайна
     if (nf === "разово" && task.control.deadline_at) {
-      return task.status === "not_started" && Date.now() > new Date(task.control.deadline_at).getTime();
+      return task.status === "NOT_STARTED" && Date.now() > new Date(task.control.deadline_at).getTime();
     }
     if (nf === "разово") {
-      return task.status === "not_started" && taskDay(task.date) < today;
+      return task.status === "NOT_STARTED" && taskDay(task.date) < today;
     }
 
     if (nf === 'ежедневно' || nf === 'daily') {
-      return task.status === 'not_started' && taskDay(task.date) < today;
+      return task.status === 'NOT_STARTED' && taskDay(task.date) < today;
     }
     if (nf === 'еженедельно' || nf === 'weekly') {
       const endOfWeek = new Date(taskDate);
       endOfWeek.setDate(endOfWeek.getDate() + (6 - endOfWeek.getDay()));
-      return task.status === 'not_started' && now > endOfWeek;
+      return task.status === 'NOT_STARTED' && now > endOfWeek;
     }
     if (nf === 'ежемесячно' || nf === 'monthly') {
       const endOfMonth = new Date(taskDate.getFullYear(), taskDate.getMonth() + 1, 0);
-      return task.status === 'not_started' && now > endOfMonth;
+      return task.status === 'NOT_STARTED' && now > endOfMonth;
     }
     if (nf === 'ежеквартально' || nf === 'quarterly') {
       const quarter = Math.floor(taskDate.getMonth() / 3);
       const endOfQuarter = new Date(taskDate.getFullYear(), quarter * 3 + 3, 0);
-      return task.status === 'not_started' && now > endOfQuarter;
+      return task.status === 'NOT_STARTED' && now > endOfQuarter;
     }
     // Задачи по требованию/запросу никогда не считаются просроченными
     if (isOnDemandNorm(nf)) {
       return false;
     }
-    return task.status === 'not_started' && taskDay(task.date) < today;
+    return task.status === 'NOT_STARTED' && taskDay(task.date) < today;
   }
 
   // Функция для применения фильтров
@@ -334,14 +413,14 @@ export const Dashboard: React.FC = () => {
 
 
   const overdue = useMemo(() => tasks.filter(isOverdue), [tasks, today]);
-  const completed = useMemo(() => tasks.filter(t => t.status === 'completed'), [tasks]);
+  const completed = useMemo(() => tasks.filter(t => t.status === 'COMPLETED'), [tasks]);
   
   // Задачи по требованию/запросу (только сегодняшние, не начатые)
   const onDemandTasks = useMemo(() => {
     return tasks.filter(task => {
       const nf = normFreq(task.control?.frequency);
       return isOnDemandNorm(nf)
-             && task.status === 'not_started'
+             && task.status === 'NOT_STARTED'
              && taskDateMatchesTodayWindow(task.date, today);
     });
   }, [tasks, today]);
@@ -366,10 +445,10 @@ export const Dashboard: React.FC = () => {
       case 'all':
       default:
         baseTasks = [...tasks].sort((a, b) => {
-          if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
-          if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
-          if (a.status === 'not_started' && b.status !== 'not_started') return -1;
-          if (a.status !== 'not_started' && b.status === 'not_started') return 1;
+          if (a.status === 'IN_PROGRESS' && b.status !== 'IN_PROGRESS') return -1;
+          if (a.status !== 'IN_PROGRESS' && b.status === 'IN_PROGRESS') return 1;
+          if (a.status === 'NOT_STARTED' && b.status !== 'NOT_STARTED') return -1;
+          if (a.status !== 'NOT_STARTED' && b.status === 'NOT_STARTED') return 1;
           return b.date.localeCompare(a.date);
         });
     }
@@ -594,7 +673,7 @@ export const Dashboard: React.FC = () => {
                 </tr>
               ) : filteredTasks.map(task => {
                 const rowOverdue = isOverdue(task);
-                const isInProgress = task.status === 'in_progress';
+                const isInProgress = task.status === 'IN_PROGRESS';
                 return (
                   <tr key={task.id}>
                     <td className={`px-2 py-2 border dark:border-gray-600 ${rowOverdue ? 'text-red-600 font-semibold' : ''}`}>{formatTaskDeadline(task)}</td>
@@ -642,19 +721,19 @@ export const Dashboard: React.FC = () => {
                     )}
                     {/* Действия */}
                     <td className="px-2 py-2 border space-x-2 text-center dark:border-gray-600">
-                      {task.status === 'not_started' && (
+                      {task.status === 'NOT_STARTED' && (
                         <Button
                           className="bg-green-500 hover:bg-green-600 w-8 h-8 p-0 flex items-center justify-center rounded-full"
-                          onClick={() => handleStatus(task, 'in_progress')}
+                          onClick={() => handleStatus(task, 'IN_PROGRESS')}
                           title="Начать"
                         >
                           ▶️
                         </Button>
                       )}
-                      {task.status === 'in_progress' && (
+                      {task.status === 'IN_PROGRESS' && (
                         <Button
                           className="bg-red-500 hover:bg-red-600 w-8 h-8 p-0 flex items-center justify-center rounded-full"
-                          onClick={() => handleStatus(task, 'completed')}
+                          onClick={() => handleStatus(task, 'COMPLETED')}
                           title="Завершить"
                         >
                           ⏹️
