@@ -1,4 +1,4 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -74,3 +74,19 @@ class NotificationRepository:
             select(User.id).where(User.email.in_(emails))
         )
         return list(result.scalars().all())
+
+    async def bulk_create_recipients_if_not_exists(
+            self, notification_id: int, user_ids: list[int]
+    ) -> None:
+        if not user_ids:
+            return
+        for user_id in user_ids:
+            await self.db.execute(
+                text("""
+                     INSERT INTO kcell_web.notification_recipient (notification_id, recipient_id, is_read)
+                     VALUES (:notification_id, :user_id, false)
+                         ON CONFLICT (notification_id, recipient_id) DO NOTHING
+                     """),
+                {"notification_id": notification_id, "user_id": user_id}
+            )
+        await self.db.commit()

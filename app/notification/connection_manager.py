@@ -12,7 +12,7 @@ class ConnectionManager:
         self._connections[user_id].append(websocket)
 
     async def disconnect(self, user_id: int, websocket: WebSocket) -> None:
-        if user_id not in self._connections:
+        if user_id in self._connections:
             self._connections[user_id].remove(websocket)
             if not self._connections[user_id]:
                 del self._connections[user_id]

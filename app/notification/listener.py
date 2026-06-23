@@ -29,10 +29,7 @@ async def handle_new_notification(notification_id: int) -> None:
         user_ids = await repo.get_user_ids_by_emails(emails)
 
         # Создаём записи в notification_recipient
-        for user_id in user_ids:
-            existing = await repo.get_recipient_by_notification_and_user(notification_id, user_id)
-            if not existing:
-                await repo.create_recipient(notification_id, user_id)
+        await repo.bulk_create_recipients_if_not_exists(notification_id, user_ids)
 
         # Пушим онлайн-юзерам
         unread_counts = {}
@@ -49,7 +46,13 @@ async def handle_new_notification(notification_id: int) -> None:
 
 async def pg_notify_listener() -> None:
     """Фоновая задача: слушает pg_notify и вызывает обработчик."""
-    conn = await asyncpg.connect(settings.database_url.replace("+asyncpg", ""))
+    try:
+        conn = await asyncpg.connect(settings.database_url.replace("+asyncpg", ""))
+    except Exception as e:
+        logger.error(f"asyncpg connect failed: {e}")
+        return
+
+    logger.info("asyncpg подключился успешно")
 
     async def callback(connection, pid, channel, payload):
         try:

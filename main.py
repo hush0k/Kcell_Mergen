@@ -15,11 +15,16 @@ from app.user.router import router as user_router
 from app.notification.router import router as notification_router
 from app.vacation_schedule.router import router as vacation_schedule_router
 
+import logging
+logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await create_schema()
-    task = asyncio.create_task(pg_notify_listener())
+    try:
+        task = asyncio.create_task(pg_notify_listener())
+    except Exception as e:
+        print(f"LISTENER ERROR: {e}")
     yield
     task.cancel()
     try:
