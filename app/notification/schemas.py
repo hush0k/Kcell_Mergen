@@ -3,11 +3,13 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.notification.enums import NotificationTypes
+from app.user.schemas import UserResponse
 
 
 class NotificationResponse(BaseModel):
     id: int
     notification_type: NotificationTypes
+    responsible_user_id: int
     sender: str
     title: str | None
     html_content: str

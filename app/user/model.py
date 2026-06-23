@@ -10,6 +10,7 @@ from app.user.enums import UserRoles
 
 if TYPE_CHECKING:
     from app.notification.model import NotificationRecipient
+    from app.notification.model import Notification
 
 
 class User(Base, TimeStampMixin):
@@ -30,3 +31,5 @@ class User(Base, TimeStampMixin):
     )
 
     notification_recipients: Mapped[list["NotificationRecipient"]] = relationship("NotificationRecipient", back_populates="user")
+
+    notifications: Mapped[list["Notification"]] = relationship("Notification", back_populates="responsible_user")

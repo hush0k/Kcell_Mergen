@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.notification.model import Notification, NotificationRecipient
+from app.user.model import User
 
 
 class NotificationRepository:
@@ -90,3 +91,20 @@ class NotificationRepository:
                 {"notification_id": notification_id, "user_id": user_id}
             )
         await self.db.commit()
+
+    async def become_responsible_user(self, notification: Notification, user_id: int) -> Notification:
+        notification.responsible_user_id = user_id
+        await self.db.commit()
+        await self.db.refresh(notification)
+        return notification
+
+    async def is_user_recipient(self, notification_id: int, user_id: int) -> bool:
+        result = await self.db.execute(
+            select(User)
+            .join(NotificationRecipient, NotificationRecipient.user_id == User.id)
+            .where(
+                NotificationRecipient.notification_id == notification_id,
+                User.id == user_id
+            )
+        )
+        return result.scalar_one_or_none() is not None

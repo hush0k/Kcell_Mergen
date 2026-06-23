@@ -45,3 +45,17 @@ class NotificationService:
             return recipient
 
         return await self.repo.mark_as_read(recipient)
+
+    async def become_responsible_user(self, notification_id: int, user_id: int) -> Notification:
+        notification = await self.repo.get_notification_by_id(notification_id)
+        if not notification:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Уведомление не найдено")
+
+        if notification.responsible_user_id is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Задача уже выбран другим пользователем")
+
+        is_recipient = await self.repo.is_user_recipient(notification_id, user_id)
+        if not is_recipient:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Не достаточно прав для совершение операции")
+
+        return await self.repo.become_responsible_user(notification, user_id)

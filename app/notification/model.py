@@ -28,6 +28,7 @@ class Notification(Base, TimeStampMixin):
         nullable=False,
     )
     recipients_email: Mapped[str] = mapped_column(String(4000), nullable=False)
+    responsible_user_id: Mapped[int] = mapped_column(ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True)
     sender: Mapped[str] = mapped_column(String(255), nullable=False)
     title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     html_content: Mapped[str] = mapped_column(nullable=False)
@@ -36,6 +37,9 @@ class Notification(Base, TimeStampMixin):
     recipients: Mapped[list["NotificationRecipient"]] = relationship(
         "NotificationRecipient", back_populates="notification"
     )
+
+    # Relationships
+    responsible_user: Mapped["User | None"] = relationship("User", back_populates="notifications")
 
 
 class NotificationRecipient(Base):
