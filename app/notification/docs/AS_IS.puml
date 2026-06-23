@@ -1,0 +1,27 @@
+@startuml
+title Notification Module — AS IS vs TO BE
+
+entity "notification" as old_notif {
+    * notif_id : numeric(32) <<PK>>
+    --
+    notif_type : varchar(100) NOT NULL
+    recipients : varchar(4000) NOT NULL
+    sender : varchar(4000) NOT NULL
+    title : varchar(4000)
+    msg_text : text NOT NULL
+    creating_dt : timestamp NOT NULL
+    processing_dt : timestamp
+    status : varchar(1) NOT NULL
+    error_msg : varchar
+}
+note right of old_notif
+  - recipients — строка с emails,
+    без привязки к user
+  - один статус на всё уведомление
+  - msg_text (plain text)
+  - naive timestamp (без timezone)
+  - нет отслеживания прочтения
+end note
+
+
+@enduml

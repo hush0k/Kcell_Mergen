@@ -226,3 +226,32 @@ uv run python seed.py
 - `mfs_audit_log` иммутабелен: нет `update`/`delete`, нет схемы `MfsAuditUpdate`
 - Сбой записи в журнал не блокирует саму операцию над blacklist — пользователь получает `audit_warning` в ответе (поведение легаси сохранено)
 - `MfsBlacklistService` и `MfsAuditLogService` работают с разными БД через разные `AsyncSession`, без общей транзакции (намеренно — физически разные базы)
+
+## Notification
+
+### Что реализовано
+- Модуль `notification/` с разделением Repository / Service / Router
+- `Notification` — таблица уведомлений с полями `title`, `html_content`, `recipients_email` (строка через `;`), `notification_type`
+- `NotificationRecipient` — junction-таблица: одна строка на каждого получателя, хранит независимый `is_read` и `read_at`
+- `ConnectionManager` — in-memory словарь `dict[int, list[WebSocket]]`, хранит активные WS-соединения по `user_id`
+- `pg_notify_listener` — фоновая задача (asyncpg), слушает канал `new_notification` и пушит онлайн-юзерам через WS
+- `GET /api/v1/notifications` — список уведомлений текущего юзера с пагинацией (joinedload notification)
+- `GET /api/v1/notifications/unread-count` — количество непрочитанных
+- `GET /api/v1/notifications/{id}/html` — HTML-контент уведомления
+- `POST /api/v1/notifications/{id}/read` — пометить как прочитанное
+- `WS /api/v1/notifications/ws?token=...` — WebSocket эндпоинт, JWT передаётся query-параметром
+
+### Что реализовано относительно легаси
+- Real-time доставка уведомлений через WebSocket + `pg_notify` вместо polling
+- `recipients_email` парсится в `user_ids` на лету через `get_user_ids_by_emails()`
+- `is_read` перенесён на уровень `NotificationRecipient` — каждый юзер имеет независимое состояние прочтения
+- PostgreSQL триггер `on_new_notification` на таблице `notification` автоматически вызывает `pg_notify` при каждом INSERT
+
+### Архитектурное решение
+- `asyncpg` используется отдельно от SQLAlchemy для `LISTEN/NOTIFY` — SQLAlchemy не поддерживает этот протокол
+- `pg_notify_listener` запускается через `asyncio.create_task()` в `lifespan` FastAPI и живёт весь цикл приложения
+- Оффлайн-юзеры не теряют уведомления: `NotificationRecipient` записи создаются всегда, WS-пуш делается только если `manager.is_online(user_id) == True`
+- При загрузке страницы фронт получает актуальный счётчик через HTTP `/unread-count`, WS используется только для новых уведомлений в реальном времени
+- Browser WebSocket API не поддерживает кастомные заголовки — JWT передаётся как query-параметр `?token=...`
+- `bulk_create_recipients_if_not_exists` использует `ON CONFLICT (notification_id, recipient_id) DO NOTHING` — требует уникального constraint на junction-таблице
+- `ConnectionManager` — singleton, импортируется и в router (connect/disconnect) и в listener (send_to_user), работает через кэш импортов Python

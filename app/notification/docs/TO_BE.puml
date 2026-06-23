@@ -1,0 +1,43 @@
+@startuml
+
+entity "notification" as new_notif {
+    * id : integer <<PK>>
+    --
+    notification_type : notificationtypes <<Enum>> NOT NULL
+    recipients_email : varchar(4000) NOT NULL
+    sender : varchar(255) NOT NULL
+    title : varchar(500)
+    html_content : text NOT NULL
+    error_message : text
+    created_at : timestamptz NOT NULL
+    updated_at : timestamptz NOT NULL
+}
+
+entity "notification_recipient" as recipient {
+    * id : integer <<PK>>
+    --
+    notification_id : integer <<FK>> NOT NULL
+    recipient_id : integer <<FK>> NOT NULL
+    is_read : boolean NOT NULL DEFAULT false
+    read_at : timestamptz
+}
+
+entity "user" as usr {
+    * id : integer <<PK>>
+    --
+    ...
+}
+
+new_notif ||--o{ recipient : "1 уведомление → N получателей"
+usr ||--o{ recipient : "1 юзер → N уведомлений"
+
+note right of recipient
+  + is_read — независимо на юзера
+  + read_at — когда прочитал
+  + CASCADE DELETE при удалении
+  + UNIQUE(notification_id, recipient_id)
+  + real-time доставка через
+    pg_notify + WebSocket
+end note
+
+@enduml
