@@ -37,8 +37,8 @@
   /* Статусы: используй эти переменные для бейджей, не хардкодь цвета в компонентах. */
   --mg-success-bg: #e9f4d6;
   --mg-success-fg: #4a7c24;
-  --mg-danger-bg: #fbe5e3;
-  --mg-danger-fg: #bc3b2e;
+  --mg-danger-bg: #d70808;
+  --mg-danger-fg: #d70808;
   --mg-info-bg: #e5eff9;
   --mg-info-fg: #2c6ba6;
   --mg-warning-bg: #fbf0d6;
@@ -149,6 +149,13 @@
   ::placeholder {
     color: var(--mg-text-3);
   }
+}
+
+@layer base {
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-webkit-contacts-auto-fill-button {
+        display: none;
+    }
 }
 
 @layer components {
