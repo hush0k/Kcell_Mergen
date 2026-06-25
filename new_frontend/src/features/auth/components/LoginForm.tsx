@@ -1,17 +1,52 @@
 import { Input } from "@/components/Input"
+import { useNavigate } from "react-router-dom"
+import { api } from "@/api/resources"
+import { ApiError } from "@/api/client"
 import { useState } from "react"
-import { EyeClosed } from 'lucide-react';
-import { Eye } from 'lucide-react';
+import { EyeClosed, Eye } from 'lucide-react';
 import { Button } from  '@/components/Button'
+
+interface FormError {
+    username?: string
+    password?: string
+    general?: string
+}
 
 
 export function LoginForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [show, setShow] = useState(false);
+    const [remember, setRemember] = useState(false);
+    const [error, setError] = useState<FormError>({});
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
+    const clearErrors = () => setError({});
+
+    const handleLogin = async () => {
+        clearErrors();
+        setLoading(true);
+        try{
+            await api.auth.login({ username, password }, remember);
+            navigate("/home");
+        } catch(err){
+            if (err instanceof ApiError && err.status === 401) {
+                setError({
+                    username: " ",
+                    password: "Неверный логин или пароль",
+                })
+            } else {
+                setError({ general: "Ошибка сервера. Попробуйте позже"})
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <div className="inline-flex flex-row shadow-mg-login bg-mg-bg">
+            {/* Левая панель */}
             <div className="flex flex-col justify-between px-12 py-14 relative overflow-hidden bg-mg-purple w-[32rem] h-[34rem] rounded-l-login">
 
 
@@ -54,12 +89,16 @@ export function LoginForm() {
                 />
 
             </div>
+
+
+            {/* Правая панель */}
             <div className="bg-mg-surface w-[32rem] h-[34rem] rounded-r-login px-12 py-24">
                 <div>
                     <h2 className="text-2xl font-semibold">Вход в систему</h2>
                     <p className="text-base text-mg-text-2">Введите учётные данные сотрудника</p>
                 </div>
                 <div className="flex flex-col space-y-5 text-xs font-semibold text-mg-text-2 mt-7">
+                    {/* Username */}
                     <div className="flex flex-col space-y-2">
                         <label htmlFor="usermame">Имя пользователя</label>
                         <Input
@@ -67,21 +106,26 @@ export function LoginForm() {
                             placeholder="azamat.turgan"
                             type="text"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            onChange={(e) => { setUsername(e.target.value); clearErrors() }}
+                            error={error.username}
                         />
                     </div>
+
+                    {/* Password */}
                     <div className="flex flex-col space-y-2">
-                        <label htmlFor="password">Имя пользователя</label>
+                        <label htmlFor="password">Пароль</label>
                         <div className="relative w-full">
                             <Input
+                                id="password"
                                 placeholder="••••••••"
                                 type={show ? "text" : "password"}
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => { setPassword(e.target.value); clearErrors() }}
+                                error={error.password}
                             />
                             <button
                                 type="button"
-                                className="absolute right-6 top-1/2 -translate-y-1/2"
+                                className="absolute right-6 top-[18px]"
                                 onClick={() => setShow(!show)}
                             >
                                 {show ? <Eye
@@ -97,11 +141,15 @@ export function LoginForm() {
                             </button>
                         </div>
                     </div>
+
+                    {/* Remember + Forgot */}
                     <div className="flex flex-row justify-between">
                         <div className="flex flex-row gap-2 font-normal text-sm">
                             <input
                                 id="save_password"
                                 type="checkbox"
+                                checked={remember}
+                                onChange={(e) => setRemember(e.target.checked)}
                                 className="w-4 h-4 rounded accent-[var(--mg-purple)] cursor-pointer"
                             />
                             <label htmlFor="save_password" className="leading-none cursor-pointer select-none">Запомнить меня</label>
@@ -112,8 +160,18 @@ export function LoginForm() {
                             onClick={() => alert("Обратитесь к Адилету. Он вам точно поможет : )")}
                         >Забыли пароль?</p>
                     </div>
+
+                    {/* General error */}
+                    {error.general && (
+                        <p className="text-xs text-mg-danger-fg px-1">{error.general}</p>
+                    )}
+
                     <div>
-                        <Button text="Войти"/>
+                        <Button
+                            text={loading ? "Вход..." : "Войти"}
+                            disabled={loading}
+                            onClick={handleLogin}
+                        />
                     </div>
                 </div>
                 <p className="text-mg-text-3 text-xs font-light mt-6">© 2026 АО Kcell · Внутренний инструмент Mergen</p>

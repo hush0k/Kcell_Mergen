@@ -8,7 +8,8 @@ export const tokenStorage = {
   getRefreshToken() {
     return localStorage.getItem(REFRESH_TOKEN_KEY);
   },
-  setTokens(accessToken: string, refreshToken: string) {
+  setTokens(accessToken: string, refreshToken: string, persist = true) {
+    const storage = persist ? localStorage : sessionStorage;
     localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   },

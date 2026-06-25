@@ -26,14 +26,14 @@ const crud = <TEntity, TCreate = ApiRecord, TUpdate = Partial<TCreate>>(
 
 export const api = {
   auth: {
-    async login(payload: LoginRequest) {
+    async login(payload: LoginRequest, remember = true) {
       const tokens = await apiRequest<TokenResponse>(apiEndpoints.auth.login, {
         method: "POST",
         body: payload,
         auth: false,
       });
 
-      tokenStorage.setTokens(tokens.access_token, tokens.refresh_token);
+      tokenStorage.setTokens(tokens.access_token, tokens.refresh_token, remember);
       return tokens;
     },
     me: () => apiRequest<CurrentUser>(apiEndpoints.auth.me),
