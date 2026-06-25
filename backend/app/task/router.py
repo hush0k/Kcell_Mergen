@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
 from app.task.model import Task
-from app.task.schemas import TaskCreate, TaskResponse, TaskUpdate
+from app.task.schemas import TaskCreate, TaskResponse, TaskUpdate, TaskList
 from app.task.service import TaskService
 from app.user.enums import UserRoles
 from app.user.model import User
@@ -23,15 +23,16 @@ ServiceDep = Annotated[TaskService, Depends(get_task_service)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.get("/", response_model=list[TaskResponse])
+@router.get("/", response_model=TaskList)
 async def get_all_tasks(
     service: ServiceDep,
     current_user: CurrentUser,
     page: int = 1,
     limit: int = 100,
-) -> list[Task]:
+) -> TaskList:
     offset = (page - 1) * limit
-    return await service.get_all(current_user, offset, limit)
+    tasks, total = await service.get_all(current_user, offset, limit)
+    return TaskList(task_list=tasks, total=total)
 
 
 @router.get("/not-started", response_model=list[TaskResponse])

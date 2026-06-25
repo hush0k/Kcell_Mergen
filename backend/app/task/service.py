@@ -124,9 +124,11 @@ class TaskService:
 
     async def get_all(
         self, current_user: User, offset: int = 0, limit: int = 100
-    ) -> list[Task]:
+    ) -> tuple[list[Task], int]:
         """Возвращает все задачи с пагинацией."""
-        return await self.repo.get_all(offset, limit, current_user)
+        total = await self.repo.count(current_user)
+        tasks = await self.repo.get_all(offset, limit, current_user)
+        return tasks, total
 
     async def get_not_started(self) -> list[Task]:
         """Возвращает все задачи со статусом NOT_STARTED."""

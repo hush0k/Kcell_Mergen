@@ -42,3 +42,9 @@ class TaskResponse(TaskBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+class TaskList(BaseModel):
+    task_list: list[TaskResponse]
+    total: int
+
+    model_config = {"from_attributes": True}

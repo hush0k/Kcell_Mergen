@@ -38,6 +38,44 @@ class TaskRepository:
         )
         return list(results.scalars().unique().all())
 
+    async def count(self, current_user: User) -> int:
+        if current_user.role == UserRoles.ADMIN:
+            stmt = select(func.count()).select_from(Task)
+        elif current_user.is_og:
+            responsible_user = aliased(User)
+            stmt = (
+                select(func.count())
+                .select_from(Task)
+                .join(Control, Task.control_id == Control.id)
+                .join(responsible_user, Control.responsible_id == responsible_user.id)
+                .where(
+                    or_(
+                        Control.responsible_id == current_user.id,
+                        Control.backup_id == current_user.id,
+                        responsible_user.is_og,
+                        )
+                )
+            )
+        else:
+            stmt = (
+                select(func.count())
+                .select_from(Task)
+                .join(Control, Task.control_id == Control.id)
+                .where(
+                    or_(
+                        Control.responsible_id == current_user.id,
+                        and_(
+                            Control.backup_id == current_user.id,
+                            Task.user_id != current_user.id,
+                            Task.status.in_([TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]),
+                            Task.deadline_time < func.now(),
+                            ),
+                        )
+                )
+            )
+        result = await self.db.execute(stmt)
+        return result.scalar()
+
     async def get_all(self, offset: int, limit: int, current_user: User) -> list[Task]:
         if current_user.role == UserRoles.ADMIN:
             results = await self.db.execute(select(Task).offset(offset).limit(limit))
