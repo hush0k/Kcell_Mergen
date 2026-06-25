@@ -1,7 +1,41 @@
-export function Sidebar() {
-    return (
-        <div>
+import { FaTasks, FaClipboardList } from "react-icons/fa";
+import { IoSettingsSharp } from "react-icons/io5";
+import { LuTriangleAlert } from "react-icons/lu";
+import { IoNotifications } from "react-icons/io5";
+import { MdOutlineHolidayVillage } from "react-icons/md";
+import { TbReportSearch } from "react-icons/tb";
+import { LiSidebar } from "@/features/home/components/LiSidebar"
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSidebar } from "@/contexts/SidebarContext"
 
+
+export function Sidebar() {
+    const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const { collapsed } = useSidebar();
+
+    const buttons = [
+        { name: "Задачи", icon: <FaTasks size={18}/>, isOpen: true, link: 'home' },
+        { name: "Контроллеры", icon: <IoSettingsSharp size={18}/>, isOpen: false, link: 'controllers' },
+        { name: "Инциденты", icon: <LuTriangleAlert size={18}/>, isOpen: false, link: 'incidents' },
+        { name: "Уведомление", icon: <IoNotifications size={18}/>, isOpen: false, link: 'notifications' },
+        { name: "МФС", icon: <FaClipboardList size={18}/>, isOpen: false, link: 'mfs' },
+        { name: "Отпуски", icon: <MdOutlineHolidayVillage size={18}/>, isOpen: false, link: 'vacation' },
+        { name: "Отчеты", icon: <TbReportSearch size={18}/>, isOpen: false, link: 'reports' },
+    ]
+
+    return (
+        <div className={`flex flex-col bg-mg-surface h-full transition-all duration-300 ${collapsed ? "w-16" : "w-72"}`}>
+            {buttons.map((button) => (
+                <LiSidebar
+                    key={button.link}
+                    name={button.name}
+                    icon={button.icon}
+                    isOpen={pathname === `/${button.link}`}
+                    onClick = { () => navigate(`/${button.link}`)}
+                    collapsed={collapsed}
+                />
+            ))}
         </div>
     )
 }

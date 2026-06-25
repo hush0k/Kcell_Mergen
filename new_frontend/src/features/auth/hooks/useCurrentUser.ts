@@ -1,4 +1,3 @@
-// src/features/auth/useCurrentUser.ts
 import { useEffect, useState } from "react";
 import { api } from "@/api/resources";
 import type { CurrentUser } from "@/types/api";
