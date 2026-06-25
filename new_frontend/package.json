@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@iconify-react/clarity": "^1.0.2",
+    "@iconify-react/ic": "^1.0.2",
     "@iconify-react/ion": "^1.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "class-variance-authority": "^0.7.1",
