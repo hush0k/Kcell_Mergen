@@ -5,6 +5,9 @@ import { IoMdMoon } from "react-icons/io";
 import { AiFillSun } from "react-icons/ai";
 import { useState } from "react"
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser"
+import { useSidebar } from "@/contexts/SidebarContext"
+import { useNavigate } from 'react-router-dom'
+
 
 function getInitials(firstName?: string, lastName?: string) {
     if (!firstName || !lastName) return "?";
@@ -14,6 +17,13 @@ function getInitials(firstName?: string, lastName?: string) {
 export function Header() {
     const [isDark, setIsDark] = useState(false);
     const user = useCurrentUser();
+    const { toggle } = useSidebar();
+    const navigate = useNavigate();
+
+    function handleLogout() {
+        localStorage.clear();
+        navigate("/login")
+    }
 
     return (
         <div className="mg-header flex flex-row items-center justify-between">
@@ -22,6 +32,7 @@ export function Header() {
                 <Button
                     icon={ <HiMenu size={20}/> }
                     variant="outline"
+                    onClick={toggle}
                 />
                 <h1 className="font-logo  text-3xl text-mg-purple">Mergen</h1>
             </div>
@@ -58,6 +69,7 @@ export function Header() {
                     variant="outline"
                     size="sm"
                     className={"bg-mg-surface hover:bg-mg-surface-2"}
+                    onClick={handleLogout}
                 />
             </div>
         </div>
