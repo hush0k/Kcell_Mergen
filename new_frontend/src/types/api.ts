@@ -26,6 +26,8 @@ export interface LoginRequest {
 
 export interface CurrentUser {
   id: Id;
+  first_name: string;
+  last_name: string;
   username: string;
   role: UserRole;
 }

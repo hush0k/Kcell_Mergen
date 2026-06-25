@@ -36,6 +36,11 @@ export function LoginForm() {
                     username: " ",
                     password: "Неверный логин или пароль",
                 })
+            } else if (err instanceof ApiError && err.status === 400) {
+                setError({
+                    username: " ",
+                    password: "Поля не до конца заполнены",
+                })
             } else {
                 setError({ general: "Ошибка сервера. Попробуйте позже"})
             }

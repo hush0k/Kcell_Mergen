@@ -174,7 +174,7 @@
     position: sticky;
     top: 0;
     z-index: 30;
-    height: 64px;
+    height: 72px;
     border-bottom: 1px solid var(--mg-border);
     background: color-mix(in srgb, var(--mg-surface) 92%, transparent);
     backdrop-filter: blur(14px);
@@ -422,6 +422,8 @@
     display: inline-flex;
     width: 32px;
     height: 32px;
+    min-width: 32px;
+    min-height: 32px;
     align-items: center;
     justify-content: center;
     border-radius: 999px;

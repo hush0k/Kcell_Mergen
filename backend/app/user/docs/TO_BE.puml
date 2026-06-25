@@ -6,6 +6,8 @@ entity "user" {
   * id : INTEGER <<PK>>
   --
   * username : VARCHAR(64) <<UNIQUE>>
+  * first_name: VARCHAR(64)
+  * last_name: VARCHAR(64)
   * password_hash : VARCHAR(256)
   * role : ENUM(ADMIN, USER)
   * is_og : BOOLEAN

@@ -18,6 +18,8 @@ class User(Base, TimeStampMixin):
     __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    first_name: Mapped[str] = mapped_column(String(64), nullable=True)
+    last_name: Mapped[str] = mapped_column(String(64), nullable=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(256), nullable=False)
