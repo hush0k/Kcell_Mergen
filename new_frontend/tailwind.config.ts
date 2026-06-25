@@ -18,6 +18,7 @@ export default {
           "purple-2": "var(--mg-purple-2)",
           "purple-soft": "var(--mg-purple-soft)",
           "purple-soft-2": "var(--mg-purple-soft-2)",
+            "purple-soft-3": "var(--mg-purple-soft-3)",
           lime: "var(--mg-lime)",
           "lime-soft": "var(--mg-lime-soft)",
           bg: "var(--mg-bg)",
