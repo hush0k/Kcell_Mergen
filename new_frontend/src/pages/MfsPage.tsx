@@ -1,7 +1,7 @@
 import { Header } from "@/components/Header"
 import { Sidebar } from "@/features/home/components/Sidebar"
 
-export function HomePage() {
+export function MfsPage() {
     return (
         <div className="flex flex-col h-screen">
 
