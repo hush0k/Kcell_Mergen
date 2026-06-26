@@ -10,7 +10,7 @@ from app.control.repository import ControlRepository
 from app.task.enums import TaskStatus
 from app.task.model import Task
 from app.task.repository import TaskRepository
-from app.task.schemas import TaskCreate, TaskUpdate
+from app.task.schemas import TaskCreate, TaskUpdate, TaskList, TaskWithControlResponse, TaskListWithControls
 from app.user.enums import UserRoles
 from app.user.model import User
 from app.user.repository import UserRepository
@@ -208,10 +208,15 @@ class TaskService:
         """Запускает генерацию задач через SQL функции в БД."""
         await self.repo.generate_tasks_via_db()
 
-    async def get_all_with_controls(self, page: int = 0, limit: int = 0) -> list[Task]:
+    async def get_all_with_controls(self,current_user:User, offset: int = 0, limit: int = 0) -> TaskListWithControls:
         """Получить все задачи вместе контроллерами"""
-        offset = (page - 1) * limit
-        return await self.repo.get_all_with_controls(offset, limit)
+        tasks, total = await self.repo.get_all_with_controls(current_user, offset, limit)
+        return TaskListWithControls(
+            task_list=[TaskWithControlResponse.model_validate(t) for t in tasks],
+            offset=offset,
+            limit=limit,
+            total=total,
+        )
 
     async def sync_weekend_tasks(self, task: Task) -> None:
         if task.weekend_group_id is None:

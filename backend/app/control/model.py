@@ -12,7 +12,7 @@ class Control(Base, TimeStampMixin):
     __tablename__ = "control"
     __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     area: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -29,13 +29,16 @@ class Control(Base, TimeStampMixin):
     )
     # deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     responsible_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"),
+        index=True
     )
     backup_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"),
+        index=True
     )
     original_user_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id")
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"),
+        index=True
     )
     risk: Mapped[str] = mapped_column(String(64), default="0")
     priority: Mapped[str] = mapped_column(String(32), default="0")

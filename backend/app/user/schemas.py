@@ -78,3 +78,11 @@ class UserUpdatePassword(BaseModel):
         if self.new_password != self.repeat_new_password:
             raise ValueError("Пароли не совпадают")
         return self
+
+class UserBrief(BaseModel):
+    id: int
+    username: str
+    first_name: str
+    last_name: str
+
+    model_config = {"from_attributes": True}

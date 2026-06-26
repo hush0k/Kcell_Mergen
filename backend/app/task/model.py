@@ -19,9 +19,9 @@ class Task(Base, TimeStampMixin):
     __tablename__ = "task"
     __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     control_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{settings.POSTGRES_SCHEMA}.control.id"), nullable=False
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.control.id"), nullable=False, index=True
     )
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id"), nullable=True

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
 from app.task.model import Task
-from app.task.schemas import TaskCreate, TaskResponse, TaskUpdate, TaskList
+from app.task.schemas import TaskCreate, TaskResponse, TaskUpdate, TaskList, TaskListWithControls
 from app.task.service import TaskService
 from app.user.enums import UserRoles
 from app.user.model import User
@@ -32,7 +32,21 @@ async def get_all_tasks(
 ) -> TaskList:
     offset = (page - 1) * limit
     tasks, total = await service.get_all(current_user, offset, limit)
-    return TaskList(task_list=tasks, total=total)
+    return TaskList(task_list=tasks, total=total, offset=offset, limit=limit)
+
+@router.get(
+    "/tasks-with-controls",
+    status_code=http_status.HTTP_200_OK,
+    response_model=TaskListWithControls,
+)
+async def get_tasks_with_controls(
+        service: ServiceDep,
+        current_user: CurrentUser,
+        page: int = 1,
+        limit: int = 20,
+) -> TaskListWithControls:
+    offset = (page - 1) * limit
+    return await service.get_all_with_controls(current_user, offset, limit)
 
 
 @router.get("/not-started", response_model=list[TaskResponse])
@@ -139,15 +153,4 @@ async def trigger_task_generator(
     await service.generate_tasks_via_db()
 
 
-@router.get(
-    "/tasks-with-controls",
-    status_code=http_status.HTTP_200_OK,
-    response_model=list[TaskResponse],
-)
-async def get_tasks_with_controls(
-    service: ServiceDep,
-    _: CurrentUser,
-    page: int = 1,
-    limit: int = 20,
-) -> list[Task]:
-    return await service.get_all_with_controls(page, limit)
+

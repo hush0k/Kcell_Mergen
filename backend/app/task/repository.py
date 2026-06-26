@@ -22,21 +22,72 @@ class TaskRepository:
         return await self.db.get(Task, task_id)
 
     async def get_all_with_controls(
-        self, offset: int = 0, limit: int = 20
-    ) -> list[Task]:
-        results = await self.db.execute(
-            select(Task)
-            .options(
-                joinedload(Task.control).joinedload(Control.responsible),
-                joinedload(Task.user),
+            self, current_user: User, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Task], int]:
+        base_options = [
+            joinedload(Task.control).load_only(
+                Control.id, Control.name, Control.area, Control.frequency,
+                Control.responsible_id, Control.backup_id, Control.dashboard_url
+            ).joinedload(Control.responsible).load_only(
+                User.id, User.first_name, User.last_name
+            ),
+            joinedload(Task.user).load_only(
+                User.id, User.first_name, User.last_name
+            ),
+        ]
+        base_order = [Task.created_at.desc(), Task.id.desc()]
+
+        if current_user is None or current_user.role == UserRoles.ADMIN:
+            where = [Control.status == ControlStatus.ACTIVE]
+            base_stmt = select(Task).join(Control).where(*where)
+        elif current_user.is_og:
+            responsible_user = aliased(User)
+            where = [
+                Control.status == ControlStatus.ACTIVE,
+                or_(
+                    Control.responsible_id == current_user.id,
+                    Control.backup_id == current_user.id,
+                    responsible_user.is_og,
+                    ),
+                ]
+            base_stmt = (
+                select(Task)
+                .join(Control, Task.control_id == Control.id)
+                .join(responsible_user, Control.responsible_id == responsible_user.id)
+                .where(*where)
             )
-            .join(Control)
-            .where(Control.status == ControlStatus.ACTIVE)
-            .order_by(Task.created_at.desc(), Task.id.desc())
+        else:
+            where = [
+                Control.status == ControlStatus.ACTIVE,
+                or_(
+                    Control.responsible_id == current_user.id,
+                    and_(
+                        Control.backup_id == current_user.id,
+                        Task.user_id != current_user.id,
+                        Task.status.in_([TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]),
+                        Task.deadline_time < func.now(),
+                        ),
+                    ),
+                ]
+            base_stmt = (
+                select(Task)
+                .join(Control, Task.control_id == Control.id)
+                .where(*where)
+            )
+
+        total_result = await self.db.execute(
+            select(func.count()).select_from(base_stmt.subquery())
+        )
+        total = total_result.scalar_one()
+
+        results = await self.db.execute(
+            base_stmt
+            .options(*base_options)
+            .order_by(*base_order)
             .offset(offset)
             .limit(limit)
         )
-        return list(results.scalars().unique().all())
+        return list(results.scalars().unique().all()), total
 
     async def count(self, current_user: User) -> int:
         if current_user.role == UserRoles.ADMIN:

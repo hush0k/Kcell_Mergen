@@ -3,7 +3,9 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from app.control.schemas import ControlBrief
 from app.task.enums import TaskStatus
+from app.user.schemas import UserBrief
 
 # Переиспользуемые типы
 TaskId = Annotated[int, Field(gt=0)]
@@ -45,6 +47,20 @@ class TaskResponse(TaskBase):
 
 class TaskList(BaseModel):
     task_list: list[TaskResponse]
+    offset: int
+    limit: int
+    total: int
+
+    model_config = {"from_attributes": True}
+
+class TaskWithControlResponse(TaskResponse):
+    control: ControlBrief
+    user: UserBrief | None = None
+
+class TaskListWithControls(BaseModel):
+    task_list: list[TaskWithControlResponse]
+    offset: int
+    limit: int
     total: int
 
     model_config = {"from_attributes": True}

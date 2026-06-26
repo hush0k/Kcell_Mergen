@@ -60,3 +60,15 @@ class ControlResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ControlBrief(BaseModel):
+    id: int
+    name: Name
+    area: Area
+    dashboard_url: str | None
+    frequency: Frequency
+    responsible_id: int | None
+    backup_id: int | None
+
+    model_config = {"from_attributes": True}
