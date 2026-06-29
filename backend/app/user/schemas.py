@@ -24,10 +24,10 @@ def validate_strong_password(password: str) -> str:
 
 class UserBase(BaseModel):
     username: Username
-    first_name: str
-    last_name: str
+    first_name: str | None
+    last_name: str | None
     role: UserRoles
-    email: str
+    email: str | None
     is_og: bool
 
 

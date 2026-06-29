@@ -44,6 +44,10 @@ export default {
             bg: "var(--mg-warning-bg)",
             fg: "var(--mg-warning-fg)",
           },
+            "completed":   { bg: "var(--mg-completed-bg)" },
+            "in-process":  { bg: "var(--mg-in-process-bg)" },
+            "not-started": { bg: "var(--mg-not-started-bg)" },
+            "overdue":     { bg: "var(--mg-overdue-bg)" },
         },
       },
       borderRadius: {

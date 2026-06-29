@@ -3,10 +3,6 @@ export type IsoDateTime = string;
 
 export type UserRole = "admin" | "user" | "ADMIN" | "USER" | string;
 export type TaskStatus =
-  | "not_started"
-  | "in_progress"
-  | "completed"
-  | "overdue"
   | "NOT_STARTED"
   | "IN_PROGRESS"
   | "COMPLETED"
@@ -54,6 +50,61 @@ export interface Task {
   weekend_group_id: number | null;
   created_at: IsoDateTime;
   updated_at: IsoDateTime;
+}
+
+export interface TaskList {
+    task_list: Task[];
+    total: number;
+}
+
+export interface ControlBrief {
+    id: number;
+    name: string;
+    area: string;
+    frequency: string;
+    dashboard_url: string;
+    responsible_id: number | null;
+    backup_id: number | null;
+    time_estimate: number | null;
+}
+
+export interface UserBrief {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+}
+
+export interface TaskWithControl {
+    id: number;
+    user_id: number | null;
+    control_id: number;
+    status: string;
+    start_time: string | null;
+    end_time: string | null;
+    comments: string | null;
+    weekend_group_id: number | null;
+    deadline_time: Date | null;
+    created_at: string;
+    updated_at: string;
+    control: ControlBrief;
+    user: UserBrief | null;
+}
+
+export interface TaskListWithControls {
+    task_list: TaskWithControl[];
+    offset: number;
+    limit: number;
+    total: number;
+}
+
+export interface TaskGenerationResults {
+    daily: number;
+    weekly: number;
+    monthly: number;
+    quarterly: number;
+    overdue_updated: number;
+    total_created: number;
 }
 
 export type ApiRecord = Record<string, unknown>;

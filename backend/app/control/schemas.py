@@ -70,5 +70,6 @@ class ControlBrief(BaseModel):
     frequency: Frequency
     responsible_id: int | None
     backup_id: int | None
+    time_estimate: int | None
 
     model_config = {"from_attributes": True}

@@ -22,18 +22,23 @@ class TaskRepository:
         return await self.db.get(Task, task_id)
 
     async def get_all_with_controls(
-            self, current_user: User, offset: int = 0, limit: int = 20
+        self, current_user: User, offset: int = 0, limit: int = 20
     ) -> tuple[list[Task], int]:
         base_options = [
-            joinedload(Task.control).load_only(
-                Control.id, Control.name, Control.area, Control.frequency,
-                Control.responsible_id, Control.backup_id, Control.dashboard_url
-            ).joinedload(Control.responsible).load_only(
-                User.id, User.first_name, User.last_name
-            ),
-            joinedload(Task.user).load_only(
-                User.id, User.first_name, User.last_name
-            ),
+            joinedload(Task.control)
+            .load_only(
+                Control.id,
+                Control.name,
+                Control.area,
+                Control.frequency,
+                Control.responsible_id,
+                Control.backup_id,
+                Control.dashboard_url,
+                Control.time_estimate,
+            )
+            .joinedload(Control.responsible)
+            .load_only(User.id, User.first_name, User.last_name),
+            joinedload(Task.user).load_only(User.id, User.first_name, User.last_name),
         ]
         base_order = [Task.created_at.desc(), Task.id.desc()]
 
@@ -48,8 +53,8 @@ class TaskRepository:
                     Control.responsible_id == current_user.id,
                     Control.backup_id == current_user.id,
                     responsible_user.is_og,
-                    ),
-                ]
+                ),
+            ]
             base_stmt = (
                 select(Task)
                 .join(Control, Task.control_id == Control.id)
@@ -64,15 +69,15 @@ class TaskRepository:
                     and_(
                         Control.backup_id == current_user.id,
                         Task.user_id != current_user.id,
-                        Task.status.in_([TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]),
-                        Task.deadline_time < func.now(),
+                        Task.status.in_(
+                            [TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]
                         ),
+                        Task.deadline_time < func.now(),
                     ),
-                ]
+                ),
+            ]
             base_stmt = (
-                select(Task)
-                .join(Control, Task.control_id == Control.id)
-                .where(*where)
+                select(Task).join(Control, Task.control_id == Control.id).where(*where)
             )
 
         total_result = await self.db.execute(
@@ -81,8 +86,7 @@ class TaskRepository:
         total = total_result.scalar_one()
 
         results = await self.db.execute(
-            base_stmt
-            .options(*base_options)
+            base_stmt.options(*base_options)
             .order_by(*base_order)
             .offset(offset)
             .limit(limit)
@@ -104,7 +108,7 @@ class TaskRepository:
                         Control.responsible_id == current_user.id,
                         Control.backup_id == current_user.id,
                         responsible_user.is_og,
-                        )
+                    )
                 )
             )
         else:
@@ -118,10 +122,12 @@ class TaskRepository:
                         and_(
                             Control.backup_id == current_user.id,
                             Task.user_id != current_user.id,
-                            Task.status.in_([TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]),
-                            Task.deadline_time < func.now(),
+                            Task.status.in_(
+                                [TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]
                             ),
-                        )
+                            Task.deadline_time < func.now(),
+                        ),
+                    )
                 )
             )
         result = await self.db.execute(stmt)
@@ -230,14 +236,27 @@ class TaskRepository:
         await self.db.refresh(task)
         return task
 
-    async def generate_tasks_via_db(self) -> None:
+    async def generate_tasks_via_db(self) -> dict[str, int]:
         schema = settings.POSTGRES_SCHEMA
-        await self.db.execute(text(f"SELECT {schema}.generate_daily_tasks()"))
-        await self.db.execute(text(f"SELECT {schema}.generate_weekly_tasks()"))
-        await self.db.execute(text(f"SELECT {schema}.generate_monthly_tasks()"))
-        await self.db.execute(text(f"SELECT {schema}.generate_quarterly_tasks()"))
-        await self.db.execute(text(f"SELECT {schema}.update_overdue_task_dates()"))
+        daily = await self.db.scalar(text(f"SELECT {schema}.generate_daily_tasks()"))
+        weekly = await self.db.scalar(text(f"SELECT {schema}.generate_weekly_tasks()"))
+        monthly = await self.db.scalar(
+            text(f"SELECT {schema}.generate_monthly_tasks()")
+        )
+        quarterly = await self.db.scalar(
+            text(f"SELECT {schema}.generate_quarterly_tasks()")
+        )
+        overdue_updated = await self.db.scalar(
+            text(f"SELECT {schema}.update_overdue_task_dates()")
+        )
         await self.db.commit()
+        return {
+            "daily": daily or 0,
+            "weekly": weekly or 0,
+            "monthly": monthly or 0,
+            "quarterly": quarterly or 0,
+            "overdue_updated": overdue_updated or 0,
+        }
 
     async def get_tasks_by_weekend_id(self, weekend_id: int) -> list[Task]:
         results = await self.db.execute(

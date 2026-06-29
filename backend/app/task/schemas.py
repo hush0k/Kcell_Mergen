@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 from app.control.schemas import ControlBrief
 from app.task.enums import TaskStatus
@@ -45,6 +45,7 @@ class TaskResponse(TaskBase):
 
     model_config = {"from_attributes": True}
 
+
 class TaskList(BaseModel):
     task_list: list[TaskResponse]
     offset: int
@@ -53,9 +54,11 @@ class TaskList(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
 class TaskWithControlResponse(TaskResponse):
     control: ControlBrief
     user: UserBrief | None = None
+
 
 class TaskListWithControls(BaseModel):
     task_list: list[TaskWithControlResponse]
@@ -64,3 +67,16 @@ class TaskListWithControls(BaseModel):
     total: int
 
     model_config = {"from_attributes": True}
+
+
+class TaskGenerationResult(BaseModel):
+    daily: int
+    weekly: int
+    monthly: int
+    quarterly: int
+    overdue_updated: int
+
+    @computed_field
+    @property
+    def total_created(self) -> int:
+        return self.daily + self.weekly + self.monthly + self.quarterly

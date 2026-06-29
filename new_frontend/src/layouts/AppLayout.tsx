@@ -9,7 +9,7 @@ export function AppLayout() {
             <div className="flex flex-col h-screen">
                 <Header />
                 <main className="flex flex-row flex-1 overflow-hidden">
-                    <Sidebar />
+                    <Sidebar    />
                     <div className="flex-1 overflow-auto">
                         <Outlet /> {/* сюда рендерятся страницы */}
                     </div>

@@ -7,7 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
 from app.task.model import Task
-from app.task.schemas import TaskCreate, TaskResponse, TaskUpdate, TaskList, TaskListWithControls
+from app.task.schemas import (
+    TaskCreate,
+    TaskGenerationResult,
+    TaskList,
+    TaskListWithControls,
+    TaskResponse,
+    TaskUpdate,
+)
 from app.task.service import TaskService
 from app.user.enums import UserRoles
 from app.user.model import User
@@ -34,16 +41,17 @@ async def get_all_tasks(
     tasks, total = await service.get_all(current_user, offset, limit)
     return TaskList(task_list=tasks, total=total, offset=offset, limit=limit)
 
+
 @router.get(
     "/tasks-with-controls",
     status_code=http_status.HTTP_200_OK,
     response_model=TaskListWithControls,
 )
 async def get_tasks_with_controls(
-        service: ServiceDep,
-        current_user: CurrentUser,
-        page: int = 1,
-        limit: int = 20,
+    service: ServiceDep,
+    current_user: CurrentUser,
+    page: int = 1,
+    limit: int = 20,
 ) -> TaskListWithControls:
     offset = (page - 1) * limit
     return await service.get_all_with_controls(current_user, offset, limit)
@@ -141,16 +149,17 @@ async def delete_task(
     await service.delete_task(task_id)
 
 
-@router.post("/trigger-tasks-generator", status_code=http_status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/trigger-tasks-generator",
+    status_code=http_status.HTTP_200_OK,
+    response_model=TaskGenerationResult,
+)
 async def trigger_task_generator(
     service: ServiceDep, current_user: CurrentUser
-) -> None:
+) -> TaskGenerationResult:
     if current_user.role != UserRoles.ADMIN:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Для совершение операции требуется права администратора",
         )
-    await service.generate_tasks_via_db()
-
-
-
+    return await service.generate_tasks_via_db()

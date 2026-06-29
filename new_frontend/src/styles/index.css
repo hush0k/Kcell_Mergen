@@ -45,6 +45,16 @@
   --mg-warning-bg: #fbf0d6;
   --mg-warning-fg: #9a6b16;
 
+    /* Статусы задач */
+    --mg-completed-bg: #c5f1c2;
+    --mg-in-process-bg: #bedbff;
+    --mg-not-started-bg: #dadcde;
+    --mg-overdue-bg: #ffd2d4;
+    --mg-completed-tx: #356c32;
+    --mg-in-process-tx: #416a9b;
+    --mg-not-started-tx: #848993;
+    --mg-overdue-tx: #c74648;
+
   /* Тени оставлены переменными, потому что в тёмной теме нужна другая глубина. */
   --mg-shadow: rgba(74, 32, 96, 0.1);
   --mg-shadow-lg: rgba(74, 32, 96, 0.16);
@@ -97,6 +107,7 @@
     min-width: 320px;
     min-height: 100%;
     background: var(--mg-bg);
+    font-size: 90%;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

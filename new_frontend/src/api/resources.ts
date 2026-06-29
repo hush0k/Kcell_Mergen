@@ -9,6 +9,9 @@ import type {
   Task,
   TokenResponse,
   User,
+  TaskList,
+  TaskListWithControls,
+  TaskGenerationResults,
 } from "@/types/api";
 
 const crud = <TEntity, TCreate = ApiRecord, TUpdate = Partial<TCreate>>(
@@ -52,6 +55,11 @@ export const api = {
   controls: crud<ApiRecord>(apiEndpoints.controls.root, apiEndpoints.controls.byId),
   tasks: {
     ...crud<Task>(apiEndpoints.tasks.root, apiEndpoints.tasks.byId),
+    list: () => apiRequest<TaskList>(apiEndpoints.tasks.root),
+    listWithControls: (params?: { page?: number; limit?: number }) =>
+      apiRequest<TaskListWithControls>(
+        `${apiEndpoints.tasks.withControls}?page=${params?.page ?? 1}&limit=${params?.limit ?? 20}`,
+      ),
     notStarted: () => apiRequest<Task[]>(apiEndpoints.tasks.notStarted),
     inProgress: () => apiRequest<Task[]>(apiEndpoints.tasks.inProgress),
     completed: () => apiRequest<Task[]>(apiEndpoints.tasks.completed),
@@ -61,7 +69,9 @@ export const api = {
     complete: (id: Id) =>
       apiRequest<Task>(apiEndpoints.tasks.complete(id), { method: "POST" }),
     triggerGenerator: () =>
-      apiRequest<null>(apiEndpoints.tasks.triggerGenerator, { method: "POST" }),
+      apiRequest<TaskGenerationResults>(apiEndpoints.tasks.triggerGenerator, {
+        method: "POST",
+      }),
   },
   vacationSchedule: crud<ApiRecord>(
     apiEndpoints.vacationSchedule.root,
