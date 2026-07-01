@@ -1,15 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import and_, func, or_, select, text
+from sqlalchemy import and_, func, or_, select, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.orm import aliased, joinedload, Query
 
-from app.control.enums import ControlStatus
+from app import task
+from app.control.enums import ControlStatus, Frequency, Area
 from app.control.model import Control
 from app.core.config import settings
 from app.task.enums import TaskStatus
 from app.task.model import Task
-from app.task.schemas import TaskUpdate
+from app.task.schemas import TaskUpdate, TaskWithControlResponse
 from app.user.enums import UserRoles
 from app.user.model import User
 
@@ -21,8 +22,43 @@ class TaskRepository:
     async def get_by_id(self, task_id: int) -> Task | None:
         return await self.db.get(Task, task_id)
 
+    async def get_by_id_with_control(self, task_id: int) -> TaskWithControlResponse | None:
+        result = await self.db.execute(
+            select(Task)
+            .options(
+                joinedload(Task.control)
+                .load_only(
+                    Control.id,
+                    Control.name,
+                    Control.area,
+                    Control.frequency,
+                    Control.responsible_id,
+                    Control.backup_id,
+                    Control.dashboard_url,
+                    Control.time_estimate,
+                    Control.priority,
+                    Control.risk,
+                    Control.description,
+                )
+                .joinedload(Control.responsible)
+                .load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
+                joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name),
+                )
+            .where(Task.id == task_id)
+        )
+        return result.scalars().one_or_none()
+
     async def get_all_with_controls(
-        self, current_user: User, offset: int = 0, limit: int = 20
+            self,
+            current_user: User,
+            status: list[TaskStatus] | None = None,
+            frequency: Frequency | None = None,
+            area: list[Area] | None = None,
+            user_id: int | None = None,
+            responsible_id: int | None = None,
+            search: str | None = None,
+            offset: int = 0,
+            limit: int = 20
     ) -> tuple[list[Task], int]:
         base_options = [
             joinedload(Task.control)
@@ -35,10 +71,13 @@ class TaskRepository:
                 Control.backup_id,
                 Control.dashboard_url,
                 Control.time_estimate,
+                Control.priority,
+                Control.risk,
+                Control.description,
             )
             .joinedload(Control.responsible)
-            .load_only(User.id, User.first_name, User.last_name),
-            joinedload(Task.user).load_only(User.id, User.first_name, User.last_name),
+            .load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
+            joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name),
         ]
         base_order = [Task.created_at.desc(), Task.id.desc()]
 
@@ -52,9 +91,9 @@ class TaskRepository:
                 or_(
                     Control.responsible_id == current_user.id,
                     Control.backup_id == current_user.id,
-                    responsible_user.is_og,
-                ),
-            ]
+                    responsible_user.is_og.is_(True),
+                    ),
+                ]
             base_stmt = (
                 select(Task)
                 .join(Control, Task.control_id == Control.id)
@@ -73,11 +112,49 @@ class TaskRepository:
                             [TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]
                         ),
                         Task.deadline_time < func.now(),
+                        ),
                     ),
-                ),
-            ]
+                ]
             base_stmt = (
                 select(Task).join(Control, Task.control_id == Control.id).where(*where)
+            )
+
+        if status:
+            base_stmt = base_stmt.where(Task.status.in_(status))
+        if frequency:
+            base_stmt = base_stmt.where(Control.frequency == frequency)
+        else:
+            base_stmt = base_stmt.where(
+                not_(
+                    and_(
+                        Control.frequency == Frequency.BY_QUERY,
+                        Task.status.in_([TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS]),
+                        )
+                )
+            )
+        if area:
+            base_stmt = base_stmt.where(Control.area.in_(area))
+        if user_id:
+            base_stmt = base_stmt.where(Task.user_id == user_id)
+        if responsible_id:
+            base_stmt = base_stmt.where(Control.responsible_id == responsible_id)
+        if search:
+            search_user = aliased(User)
+            search_responsible = aliased(User)
+            pattern = f"%{search}%"
+            base_stmt = (
+                base_stmt
+                .outerjoin(search_user, Task.user_id == search_user.id)
+                .outerjoin(search_responsible, Control.responsible_id == search_responsible.id)
+                .where(
+                    or_(
+                        Control.name.ilike(pattern),
+                        search_user.first_name.ilike(pattern),
+                        search_user.last_name.ilike(pattern),
+                        search_responsible.first_name.ilike(pattern),
+                        search_responsible.last_name.ilike(pattern),
+                    )
+                )
             )
 
         total_result = await self.db.execute(
@@ -107,7 +184,7 @@ class TaskRepository:
                     or_(
                         Control.responsible_id == current_user.id,
                         Control.backup_id == current_user.id,
-                        responsible_user.is_og,
+                        responsible_user.is_og.is_(True),
                     )
                 )
             )
@@ -146,7 +223,7 @@ class TaskRepository:
                     or_(
                         Control.responsible_id == current_user.id,
                         Control.backup_id == current_user.id,
-                        responsible_user.is_og,
+                        responsible_user.is_og.is_(True),
                     )
                 )
                 .offset(offset)
@@ -229,6 +306,7 @@ class TaskRepository:
                     Task.user_id == user.id,
                 )
             )
+
         return list(result.scalars().all())
 
     async def save_task(self, task: Task) -> Task:
