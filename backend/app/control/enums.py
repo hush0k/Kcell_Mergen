@@ -12,3 +12,10 @@ class Frequency(enum.Enum):
 class ControlStatus(enum.Enum):
     ACTIVE = "ACTIVE"
     SUSPENDED = "SUSPENDED"
+
+class Area(enum.Enum):
+    TF = "TF"
+    IF = "IF"
+    RA = "RA"
+    A2P = "A2P"
+    DEV = "DEV"
