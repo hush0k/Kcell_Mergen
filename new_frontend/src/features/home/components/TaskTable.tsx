@@ -3,16 +3,32 @@ import { TaskWithControl } from "@/types/api";
 import { api } from "@/api/resources";
 import { StatusIcon } from "@/features/home/components/StatusIcon";
 import { Button } from "@/components/Button";
-import { FaCheck } from "react-icons/fa";
-import { BiSolidMessageAltError, BiSolidShow } from "react-icons/bi";
+import { BiSolidShow } from "react-icons/bi";
+import { BiErrorAlt } from "react-icons/bi";
+import { renderTime, calculateTime, diffMinutes } from "@/features/home/hooks/CalulateTime";
+import { BsEmojiExpressionless, BsEmojiSmile, BsEmojiGrin, BsEmojiFrown} from "react-icons/bs";
 
 const PAGE_SIZE = 20;
 
 interface Props {
     onTotalChange?: (total: number) => void;
+    filters: { status? : string[]; frequency?: string; area?: string[]; user_id?: number; responsible_id?: number };
+    search?: string;
+    onView: (id:string) => void
 }
 
-export function TaskTable({ onTotalChange }: Props) {
+const columns = [
+    { header: "Дата создания", width: "w-[7rem]" },
+    { header: "Контроллер", width: "w-[12.5rem]" },
+    { header: "Ответственный", width: "w-[8.75rem]" },
+    { header: "Исполнитель", width: "w-[8.75rem]" },
+    { header: "Статус", width: "w-[6.875rem]" },
+    { header: "Комментарий", width: "w-[12.5rem]" },
+    { header: "Время", width: "w-[5rem]" },
+    { header: "Действия", width: "w-[8rem]" },
+]
+
+export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
     const [items, setItems] = useState<TaskWithControl[]>([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -29,8 +45,13 @@ export function TaskTable({ onTotalChange }: Props) {
     }, []);
 
     useEffect(() => {
+        setItems([]);
+        setPage(1);
+    }, [filters, search]);
+
+    useEffect(() => {
         setLoading(true);
-        api.tasks.listWithControls({ page, limit: PAGE_SIZE }).then(res => {
+        api.tasks.listWithControls({ page, limit: PAGE_SIZE, ...filters, search }).then(res => {
             if (!mountedRef.current) return;
 
             setItems(prev => {
@@ -49,7 +70,42 @@ export function TaskTable({ onTotalChange }: Props) {
                 setLoading(false);
             }
         });
-    }, [onTotalChange, page]);
+    }, [onTotalChange, page, filters, search]);
+
+    const handleComplete = async (id: number) => {
+        try {
+            let task = await api.tasks.get(id);
+            if (task.status === "NOT_STARTED") {
+                await api.tasks.start(id);
+                setItems(prev => prev.map(item =>
+                    item.id === id ? { ...item, status: "IN_PROGRESS" } : item
+                ));
+            } else if (task.status === "IN_PROGRESS") {
+                await api.tasks.complete(id);
+                setItems(prev => prev.map(item =>
+                    item.id === id ? { ...item, status: "COMPLETED" } : item
+                ));
+            } else if (task.status === "COMPLETED") {
+                return
+            } else if (task.status === "OVERDUE") {
+                if (task.start_time !== null && task.start_time !== undefined) {
+                    await api.tasks.complete(id);
+                    setItems(prev => prev.map(item =>
+                        item.id === id ? { ...item, status: "COMPLETED" } : item
+                    ));
+                } else {
+                    await api.tasks.start(id);
+                    setItems(prev => prev.map(item =>
+                        item.id === id ? { ...item, status: "IN_PROGRESS" } : item
+                    ));
+                }
+            }
+
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
 
     useEffect(() => {
         const el = sentinelRef.current;
@@ -70,16 +126,12 @@ export function TaskTable({ onTotalChange }: Props) {
 
     return (
         <div className="mg-table-card overflow-auto max-h-full">
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse table-fixed">
                 <thead className="sticky top-0 z-10">
-                <tr style={{ background: "var(--mg-surface-3)" }}>
-                    {["Дата создания", "Контроллер", "Ответственный", "Исполнитель", "Статус", "Комментарий", "Время", "Действия"].map(h => (
-                        <th
-                            key={h}
-                            className="px-3.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider"
-                            style={{ color: "var(--mg-text)", borderBottom: "1px solid var(--mg-border)" }}
-                        >
-                            {h}
+                <tr className="bg-mg-surface-2">
+                    {columns.map(col => (
+                        <th key={col.header} className={`${col.width} px-3.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-mg-text border border-mg-border`}>
+                            {col.header}
                         </th>
                     ))}
                 </tr>
@@ -95,28 +147,42 @@ export function TaskTable({ onTotalChange }: Props) {
                     >
                         <td className="px-3.5 py-2.5 text-sm whitespace-nowrap">{formatDate(item.created_at)}</td>
                         <td className="px-3.5 py-2.5 text-sm">
-                            <a href={item.control.dashboard_url} target="_blank" rel="noreferrer">
+                            <a href={item.control?.dashboard_url} target="_blank" rel="noreferrer">
                                 {item.control.name}
                             </a>
                         </td>
                         <td className="px-3.5 py-2.5 text-sm">
-                            {item.user ? `${item.user.last_name[0]}.${item.user.first_name}` : "—"} 
+                            {item.control.responsible ? (item.control.responsible.is_og ? "ОГ" : `${item.control.responsible.last_name?.[0] ?? "U"}. ${item.control.responsible.first_name ?? "Unknown"}`) : "—"}
                         </td>
                         <td className="px-3.5 py-2.5 text-sm">
-                            {item.user ? `${item.user.last_name[0]}.${item.user.first_name}` : "—"}
+                            {item.user
+                                ? `${item.user.last_name?.[0] ?? ""}. ${item.user.first_name ?? ""}`
+                                : "—"}
                         </td>
                         <td className="px-3.5 py-2.5 w-[90px] text-center">
                             <StatusIcon deadline={item.deadline_time} status={item.status} />
                         </td>
                         <td className="px-3.5 py-2.5 text-sm max-w-[200px] truncate">{item.comments ?? "—"}</td>
                         <td className="px-3.5 py-2.5 text-sm w-[80px] whitespace-nowrap">
-                            {item.control.time_estimate ?? "—"}
+                            {item.end_time && item.start_time
+                                ? renderTime(calculateTime(diffMinutes(item.start_time, item.end_time)))
+                                : "—"}
                         </td>
                         <td className="px-3.5 py-2.5">
                             <div className="flex gap-1.5">
-                                <Button icon={<BiSolidMessageAltError />} variant="outline" />
-                                <Button icon={<FaCheck />} variant="outline" />
-                                <Button icon={<BiSolidShow />} variant="outline" />
+                                <Button icon={<BiErrorAlt size={16}/>} variant="outline" className="p-1.5"/>
+                                <Button
+                                    icon={item.status === "COMPLETED" ? <BsEmojiGrin size={16}/> : (item.status === "IN_PROGRESS" ? <BsEmojiSmile size={16}/> : item.status === "NOT_STARTED" ? <BsEmojiExpressionless size={16}/> : <BsEmojiFrown />)}
+                                    variant="outline"
+                                    className="p-1.5"
+                                    onClick={() => handleComplete(item.id)}
+                                />
+                                <Button
+                                    icon={<BiSolidShow size={16}/>}
+                                    variant="outline"
+                                    className="p-1.5"
+                                    onClick={() => onView?.(String(item.id))}
+                                />
                             </div>
                         </td>
                     </tr>

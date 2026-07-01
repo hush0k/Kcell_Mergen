@@ -9,16 +9,12 @@ type FilterGroup = { name: string; values: FilterOption[] }
 
 const filterBy: FilterGroup[] = [
     {
-        name: "По статусу",
+        name: "По частоте",
         values: [
-            { label: "Текущие", value: ["NOT_STARTED", "IN_PROGRESS"] },
-            { label: "Выполнены", value: "COMPLETED" },
-            { label: "Просроченные", value: "OVERDUE" },
-        ]
-    },
-    {
-        name: "По запросу",
-        values: [
+            { label: "Ежедневные", value: "ежедневные" },
+            { label: "Еженедельные", value: "еженедельные" },
+            { label: "Ежемесячные", value: "ежемесячные" },
+            { label: "Ежеквартальные", value: "ежеквартальные" },
             { label: "По запросу", value: "по запросу" }
         ]
     },
@@ -30,6 +26,13 @@ const filterBy: FilterGroup[] = [
             { label: "DEV", value: "DEV" },
             { label: "RA", value: "RA" },
             { label: "A2P", value: "A2P" },
+        ]
+    },
+    {
+        name: "По статусу",
+        values: [
+            { label: "Активный", value: "ACTIVE" },
+            { label: "Приостановлен", value: "SUSPENDED" }
         ]
     }
 ]
