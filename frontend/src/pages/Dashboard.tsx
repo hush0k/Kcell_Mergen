@@ -206,11 +206,12 @@ export const Dashboard: React.FC = () => {
       if (!tasksRes.ok || !controlsRes.ok || !usersRes.ok) {
         throw new Error('Ошибка сети или сервера');
       }
-      const [rawTasks, rawControls, rawUsers] = await Promise.all([
+      const [tasksData, rawControls, rawUsers] = await Promise.all([
         tasksRes.json(),
         controlsRes.json(),
         usersRes.json(),
       ]);
+      const rawTasks = Array.isArray(tasksData) ? tasksData : (tasksData.task_list ?? []);
       setTasks(buildTasks(rawTasks, rawControls, rawUsers));
     } catch {
       setError("Ошибка загрузки задач");
