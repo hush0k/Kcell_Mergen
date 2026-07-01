@@ -125,7 +125,7 @@ export function LoginForm() {
                         </div>
                         <p
                             className="font-bold text-mg-purple text-sm cursor-pointer"
-                            onClick={() => alert("Обратитесь к Адилету. Он вам точно поможет : )")}
+                            onClick={() => alert("По этому вопросу можете обратится к Куанай Адилету. \nПочта: Kuanay.Adilet@kcell.kz")}
                         >Забыли пароль?</p>
                     </div>
 

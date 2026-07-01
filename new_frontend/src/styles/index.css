@@ -69,7 +69,7 @@
 /* Для тёмной темы добавь data-theme="dark" на html/body/root, когда появится переключатель. */
 [data-theme="dark"] {
   color-scheme: dark;
-  --mg-purple: #cba0e4;
+  --mg-purple: #a667cb;
   --mg-purple-deep: #a871c9;
   --mg-purple-2: #b07fd0;
   --mg-purple-soft: #2e2640;
@@ -93,6 +93,16 @@
   --mg-info-fg: #8fbde8;
   --mg-warning-bg: #352b17;
   --mg-warning-fg: #e6c06b;
+
+    /* Статусы задач */
+    --mg-completed-bg: #3a8c44;
+    --mg-in-process-bg: #406ba1;
+    --mg-not-started-bg: #584475;
+    --mg-overdue-bg: #9a4043;
+    --mg-completed-tx: #afe3ab;
+    --mg-in-process-tx: #aac2de;
+    --mg-not-started-tx: #a080e0;
+    --mg-overdue-tx: #eabbbc;
 
   --mg-shadow: rgba(0, 0, 0, 0.45);
   --mg-shadow-lg: rgba(0, 0, 0, 0.6);
