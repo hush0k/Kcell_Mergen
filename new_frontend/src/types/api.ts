@@ -9,6 +9,8 @@ export type TaskStatus =
   | "OVERDUE"
   | string;
 
+export type Area = "TF" | "IF" | "A2P" | "RA" | "DEV"
+
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -31,6 +33,8 @@ export interface CurrentUser {
 export interface User {
   id: Id;
   username: string;
+  first_name: string;
+  last_name: string;
   role: UserRole;
   email: string;
   is_og: boolean;
@@ -60,19 +64,24 @@ export interface TaskList {
 export interface ControlBrief {
     id: number;
     name: string;
-    area: string;
+    area: Area;
     frequency: string;
-    dashboard_url: string;
+    dashboard_url: string | undefined;
     responsible_id: number | null;
     backup_id: number | null;
     time_estimate: number | null;
+    responsible: UserBrief | null;
+    priority: string | null;
+    risk: string | null;
+    description: string | null;
 }
 
 export interface UserBrief {
     id: number;
     username: string;
-    first_name: string;
-    last_name: string;
+    first_name: string | null;
+    last_name: string | null;
+    is_og: boolean | null;
 }
 
 export interface TaskWithControl {

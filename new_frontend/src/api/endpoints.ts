@@ -17,6 +17,7 @@ export const apiEndpoints = {
   tasks: {
     root: "/tasks/",
     withControls: "/tasks/tasks-with-controls",
+    withControlsById: (id: number) => `/tasks/${id}/with-controls`,
     notStarted: "/tasks/not-started",
     inProgress: "/tasks/in-progress",
     completed: "/tasks/completed",

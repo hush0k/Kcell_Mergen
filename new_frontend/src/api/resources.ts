@@ -11,6 +11,7 @@ import type {
   User,
   TaskList,
   TaskListWithControls,
+  TaskWithControl,
   TaskGenerationResults,
 } from "@/types/api";
 
@@ -55,11 +56,23 @@ export const api = {
   controls: crud<ApiRecord>(apiEndpoints.controls.root, apiEndpoints.controls.byId),
   tasks: {
     ...crud<Task>(apiEndpoints.tasks.root, apiEndpoints.tasks.byId),
-    list: () => apiRequest<TaskList>(apiEndpoints.tasks.root),
-    listWithControls: (params?: { page?: number; limit?: number }) =>
-      apiRequest<TaskListWithControls>(
-        `${apiEndpoints.tasks.withControls}?page=${params?.page ?? 1}&limit=${params?.limit ?? 20}`,
-      ),
+      listWithControls: (params?: { page?: number; limit?: number; status?: string[]; frequency?: string; area?: string[]; user_id?: number; responsible_id?: number; search?: string }) => {
+          const searchParams = new URLSearchParams();
+          searchParams.set("page", String(params?.page ?? 1));
+          searchParams.set("limit", String(params?.limit ?? 20));
+          params?.status?.forEach(s => searchParams.append("status", s));
+          if (params?.frequency) searchParams.set("frequency", params.frequency);
+          params?.area?.forEach(a => searchParams.append("area", a));
+          if (params?.user_id) searchParams.set("user_id", String(params.user_id));
+          if (params?.responsible_id) searchParams.set("responsible_id", String(params.responsible_id));
+          if (params?.search) searchParams.set("search", params.search);
+
+          return apiRequest<TaskListWithControls>(
+              `${apiEndpoints.tasks.withControls}?${searchParams.toString()}`
+          );
+      },
+      getWithControls: (id: Id) =>
+          apiRequest<TaskWithControl>(apiEndpoints.tasks.withControlsById(id)),
     notStarted: () => apiRequest<Task[]>(apiEndpoints.tasks.notStarted),
     inProgress: () => apiRequest<Task[]>(apiEndpoints.tasks.inProgress),
     completed: () => apiRequest<Task[]>(apiEndpoints.tasks.completed),
