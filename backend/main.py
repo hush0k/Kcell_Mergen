@@ -45,6 +45,11 @@ app.include_router(mfs_router)
 app.include_router(notification_router)
 
 
+@app.get("/api/public/config")
+async def public_config() -> dict[str, str]:
+    return {"deployment": "lite"}
+
+
 @app.get("/")
 async def root() -> dict[str, str]:
     return {"message": "API is working"}

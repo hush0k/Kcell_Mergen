@@ -1,7 +1,7 @@
 from sqlalchemy import Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.control.enums import ControlStatus, Frequency
+from app.control.enums import ControlStatus, Frequency, Area
 from app.core.config import settings
 from app.core.mixins import TimeStampMixin
 from app.db.database import Base
@@ -13,7 +13,12 @@ class Control(Base, TimeStampMixin):
     __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    area: Mapped[str] = mapped_column(String(64), nullable=False)
+    area: Mapped[Area] = mapped_column(Enum(
+        Area,
+        schema=settings.POSTGRES_SCHEMA,
+        name="area",
+        values_callable=lambda x: [e.value for e in x],
+    ), default=Area.TF, nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     time_estimate: Mapped[int] = mapped_column(Integer)
