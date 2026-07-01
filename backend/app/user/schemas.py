@@ -82,7 +82,8 @@ class UserUpdatePassword(BaseModel):
 class UserBrief(BaseModel):
     id: int
     username: str
-    first_name: str
-    last_name: str
+    first_name: str | None = None
+    last_name: str | None = None
+    is_og: bool | None = None
 
     model_config = {"from_attributes": True}

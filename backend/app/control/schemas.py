@@ -3,10 +3,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from app.control.enums import ControlStatus, Frequency
+from app.control.enums import ControlStatus, Frequency, Area
+from app.user.schemas import UserBrief
 
 # Переиспользуемые типы
-Area = Annotated[str, Field(min_length=1, max_length=64)]
 Name = Annotated[str, Field(min_length=1, max_length=128)]
 Risk = Annotated[str, Field(max_length=64)]
 Priority = Annotated[str, Field(max_length=64)]
@@ -71,5 +71,9 @@ class ControlBrief(BaseModel):
     responsible_id: int | None
     backup_id: int | None
     time_estimate: int | None
+    responsible: UserBrief | None = None
+    priority: str | None = None
+    risk: str | None = None
+    description: str | None = None
 
     model_config = {"from_attributes": True}

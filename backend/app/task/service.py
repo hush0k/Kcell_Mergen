@@ -4,8 +4,9 @@ from datetime import date, datetime, time, timedelta
 from fastapi import HTTPException
 from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Query
 
-from app.control.enums import Frequency
+from app.control.enums import Frequency, Area
 from app.control.repository import ControlRepository
 from app.task.enums import TaskStatus
 from app.task.model import Task
@@ -38,6 +39,14 @@ class TaskService:
                 detail="Задача не найдена",
             )
         return task
+
+    async def get_by_id_with_control(self, task_id: int) -> TaskWithControlResponse:
+        task = await self.repo.get_by_id_with_control(task_id)
+        if not task:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Задача не найдена",)
+
+        return task
+
 
     async def create_task(self, task_in: TaskCreate) -> Task:
         """Создает задачу. Автоматически вычисляет deadline на основе частоты контрола.
@@ -216,11 +225,20 @@ class TaskService:
         return TaskGenerationResult(**result)
 
     async def get_all_with_controls(
-        self, current_user: User, offset: int = 0, limit: int = 0
+            self,
+            current_user: User,
+            status: list[TaskStatus] | None = None,
+            frequency: Frequency | None = None,
+            area: list[Area] | None = None,
+            user_id: int = None,
+            responsible_id: int = None,
+            search: str | None = None,
+            offset: int = 0,
+            limit: int = 0
     ) -> TaskListWithControls:
         """Получить все задачи вместе контроллерами"""
         tasks, total = await self.repo.get_all_with_controls(
-            current_user, offset, limit
+            current_user, status, frequency, area, user_id, responsible_id, search, offset, limit
         )
         return TaskListWithControls(
             task_list=[TaskWithControlResponse.model_validate(t) for t in tasks],

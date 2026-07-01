@@ -1,11 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.control.enums import Frequency, Area
 from app.db.database import get_db
+from app.task.enums import TaskStatus
 from app.task.model import Task
 from app.task.schemas import (
     TaskCreate,
@@ -13,7 +16,7 @@ from app.task.schemas import (
     TaskList,
     TaskListWithControls,
     TaskResponse,
-    TaskUpdate,
+    TaskUpdate, TaskWithControlResponse,
 )
 from app.task.service import TaskService
 from app.user.enums import UserRoles
@@ -48,14 +51,27 @@ async def get_all_tasks(
     response_model=TaskListWithControls,
 )
 async def get_tasks_with_controls(
-    service: ServiceDep,
-    current_user: CurrentUser,
-    page: int = 1,
-    limit: int = 20,
+        service: ServiceDep,
+        current_user: CurrentUser,
+        status: list[TaskStatus] = Query(default=[]),
+        frequency: Frequency | None = Query(default=None),
+        user_id: int = Query(default=None),
+        responsible_id: int = Query(default=None),
+        area: list[Area] = Query(default=[]),
+        search: str = Query(default=None),
+        page: int = 1,
+        limit: int = 20,
 ) -> TaskListWithControls:
     offset = (page - 1) * limit
-    return await service.get_all_with_controls(current_user, offset, limit)
+    return await service.get_all_with_controls(current_user, status, frequency, area, user_id, responsible_id, search, offset, limit)
 
+@router.get("/{task_id}/with-controls", response_model=TaskWithControlResponse)
+async def get_task(
+        service: ServiceDep,
+        task_id: int,
+        _: CurrentUser,
+) -> TaskWithControlResponse:
+    return await service.get_by_id_with_control(task_id)
 
 @router.get("/not-started", response_model=list[TaskResponse])
 async def get_not_started(
@@ -163,3 +179,12 @@ async def trigger_task_generator(
             detail="Для совершение операции требуется права администратора",
         )
     return await service.generate_tasks_via_db()
+
+
+@router.post("/mark-overdue")
+async def mark_overdue_tasks(db: AsyncSession = Depends(get_db)):
+    """ Для ручного обновление просроченных задач """
+    result = await db.execute(text("SELECT kcell_web.mark_overdue_tasks()"))
+    await db.commit()
+    count = result.scalar()
+    return {"updated": count}
