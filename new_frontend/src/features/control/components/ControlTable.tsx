@@ -1,45 +1,43 @@
 import { useState, useEffect, useRef } from "react";
-import { TaskWithControl } from "@/types/api";
 import { api } from "@/api/resources";
-import { StatusIcon } from "@/features/home/components/StatusIcon";
 import { Button } from "@/components/Button";
 import { BiSolidShow } from "react-icons/bi";
-import { BiErrorAlt } from "react-icons/bi";
-import { renderTime, calculateTime, diffMinutes } from "@/features/home/hooks/CalulateTime";
-import { BsEmojiExpressionless, BsEmojiSmile, BsEmojiGrin, BsEmojiFrown} from "react-icons/bs";
+import { MdSwapHoriz } from "react-icons/md";
+import type { ControlWithUsers, ControlStatus, Frequency } from "@/types/api";
+import { ControlStatusIcon, capitalizeFrequency } from "@/features/control/components/ControlStatusIcon";
 
 const PAGE_SIZE = 20;
 
+export interface ControlFilters {
+    area?: string;
+    control_status?: ControlStatus;
+    frequency?: Frequency;
+    responsible_id?: number;
+}
+
 interface Props {
     onTotalChange?: (total: number) => void;
-    filters: { status? : string[]; frequency?: string; area?: string[]; user_id?: number; responsible_id?: number };
+    filters: ControlFilters;
     search?: string;
-    onView: (id:string) => void
+    onView: (id: string) => void;
+    refreshTrigger?: number;
 }
 
 const columns = [
-    { header: "Область", width: "w-[7rem]" },
-    { header: "Название", width: "w-[12.5rem]" },
-    { header: "Частота", width: "w-[8.75rem]" },
-    { header: "Ответственный", width: "w-[8.75rem]" },
-    { header: "Статус", width: "w-[6.875rem]" }
-]
+    { header: "Область", width: "w-[8%]" },
+    { header: "Название", width: "w-[22%]" },
+    { header: "Частота", width: "w-[15%]" },
+    { header: "Ответственный", width: "w-[15%]" },
+    { header: "Статус", width: "w-[9%]" },
+    { header: "Действие", width: "w-[10%]" },
+];
 
-export function ControlTable({ onTotalChange, filters, search, onView }: Props) {
-    const [items, setItems] = useState<TaskWithControl[]>([]);
+export function ControlTable({ onTotalChange, filters, search, onView, refreshTrigger }: Props) {
+    const [items, setItems] = useState<ControlWithUsers[]>([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const sentinelRef = useRef<HTMLDivElement>(null);
-    const mountedRef = useRef(true);
-
-    useEffect(() => {
-        mountedRef.current = true;
-
-        return () => {
-            mountedRef.current = false;
-        };
-    }, []);
 
     useEffect(() => {
         setItems([]);
@@ -47,62 +45,28 @@ export function ControlTable({ onTotalChange, filters, search, onView }: Props) 
     }, [filters, search]);
 
     useEffect(() => {
+        const controller = new AbortController();
         setLoading(true);
-        api.tasks.listWithControls({ page, limit: PAGE_SIZE, ...filters, search }).then(res => {
-            if (!mountedRef.current) return;
 
-            setItems(prev => {
-                if (page === 1) {
-                    return res.task_list;
-                }
-
-                const seenIds = new Set(prev.map(item => item.id));
-                const nextItems = res.task_list.filter(item => !seenIds.has(item.id));
-                return [...prev, ...nextItems];
+        api.controls.list({ page, per_page: PAGE_SIZE, ...filters, search }, { signal: controller.signal })
+            .then(res => {
+                setItems(prev => {
+                    if (page === 1) return res.controls;
+                    const seenIds = new Set(prev.map(item => item.id));
+                    return [...prev, ...res.controls.filter(item => !seenIds.has(item.id))];
+                });
+                setHasMore(res.controls.length === PAGE_SIZE);
+                onTotalChange?.(res.total);
+            })
+            .catch(err => {
+                if (err.name !== "AbortError") console.error(err);
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setLoading(false);
             });
-            setHasMore(res.task_list.length === PAGE_SIZE);
-            onTotalChange?.(res.total);
-        }).finally(() => {
-            if (mountedRef.current) {
-                setLoading(false);
-            }
-        });
-    }, [onTotalChange, page, filters, search]);
 
-    const handleComplete = async (id: number) => {
-        try {
-            let task = await api.tasks.get(id);
-            if (task.status === "NOT_STARTED") {
-                await api.tasks.start(id);
-                setItems(prev => prev.map(item =>
-                    item.id === id ? { ...item, status: "IN_PROGRESS" } : item
-                ));
-            } else if (task.status === "IN_PROGRESS") {
-                await api.tasks.complete(id);
-                setItems(prev => prev.map(item =>
-                    item.id === id ? { ...item, status: "COMPLETED" } : item
-                ));
-            } else if (task.status === "COMPLETED") {
-                return
-            } else if (task.status === "OVERDUE") {
-                if (task.start_time !== null && task.start_time !== undefined) {
-                    await api.tasks.complete(id);
-                    setItems(prev => prev.map(item =>
-                        item.id === id ? { ...item, status: "COMPLETED" } : item
-                    ));
-                } else {
-                    await api.tasks.start(id);
-                    setItems(prev => prev.map(item =>
-                        item.id === id ? { ...item, status: "IN_PROGRESS" } : item
-                    ));
-                }
-            }
-
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
+        return () => controller.abort();
+    }, [page, filters, search, refreshTrigger]);
 
     useEffect(() => {
         const el = sentinelRef.current;
@@ -116,10 +80,20 @@ export function ControlTable({ onTotalChange, filters, search, onView }: Props) 
         return () => observer.disconnect();
     }, [hasMore, loading]);
 
-    const formatDate = (iso: string) =>
-        new Date(iso).toLocaleDateString("ru-RU", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-        }).replace(/\./g, "-");
+    const handleChangeStatus = async (id: number) => {
+        const prevItems = items;
+        setItems(prev => prev.map(item =>
+            item.id === id
+                ? { ...item, status: item.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE" }
+                : item
+        ));
+        try {
+            await api.controls.changeStatus(id);
+        } catch (e) {
+            console.error(e);
+            setItems(prevItems);
+        }
+    };
 
     return (
         <div className="mg-table-card overflow-auto max-h-full">
@@ -137,48 +111,40 @@ export function ControlTable({ onTotalChange, filters, search, onView }: Props) 
                 {items.map(item => (
                     <tr
                         key={item.id}
-                        className="transition-colors"
+                        className="mg-table-row transition-colors"
                         style={{ borderBottom: "1px solid var(--mg-border)" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "var(--mg-surface-2)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "var(--mg-surface)")}
+                        onClick={() => onView?.(String(item.id))}
                     >
-                        <td className="px-3.5 py-2.5 text-sm whitespace-nowrap">{formatDate(item.created_at)}</td>
+                        <td className="px-3.5 py-2.5 text-sm">{item.area}</td>
                         <td className="px-3.5 py-2.5 text-sm">
-                            <a href={item.control?.dashboard_url} target="_blank" rel="noreferrer">
-                                {item.control.name}
-                            </a>
+                            {item.dashboard_url ? (
+                                <a href={item.dashboard_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>
+                                    {item.name}
+                                </a>
+                            ) : item.name}
                         </td>
+                        <td className="px-3.5 py-2.5 text-sm">{capitalizeFrequency(item.frequency)}</td>
                         <td className="px-3.5 py-2.5 text-sm">
-                            {item.control.responsible ? (item.control.responsible.is_og ? "ОГ" : `${item.control.responsible.last_name?.[0] ?? "U"}. ${item.control.responsible.first_name ?? "Unknown"}`) : "—"}
-                        </td>
-                        <td className="px-3.5 py-2.5 text-sm">
-                            {item.user
-                                ? `${item.user.last_name?.[0] ?? ""}. ${item.user.first_name ?? ""}`
+                            {item.responsible
+                                ? item.responsible.is_og
+                                    ? "ОГ"
+                                    : `${item.responsible.last_name?.[0] ?? ""}. ${item.responsible.first_name ?? ""}`
                                 : "—"}
                         </td>
-                        <td className="px-3.5 py-2.5 w-[90px] text-center">
-                            <StatusIcon deadline={item.deadline_time} status={item.status} />
-                        </td>
-                        <td className="px-3.5 py-2.5 text-sm max-w-[200px] truncate">{item.comments ?? "—"}</td>
-                        <td className="px-3.5 py-2.5 text-sm w-[80px] whitespace-nowrap">
-                            {item.end_time && item.start_time
-                                ? renderTime(calculateTime(diffMinutes(item.start_time, item.end_time)))
-                                : "—"}
-                        </td>
+                        <td className="px-3.5 py-2.5 text-sm"><ControlStatusIcon status={item.status} /></td>
                         <td className="px-3.5 py-2.5">
-                            <div className="flex gap-1.5">
-                                <Button icon={<BiErrorAlt size={16}/>} variant="outline" className="p-1.5"/>
-                                <Button
-                                    icon={item.status === "COMPLETED" ? <BsEmojiGrin size={16}/> : (item.status === "IN_PROGRESS" ? <BsEmojiSmile size={16}/> : item.status === "NOT_STARTED" ? <BsEmojiExpressionless size={16}/> : <BsEmojiFrown />)}
-                                    variant="outline"
-                                    className="p-1.5"
-                                    onClick={() => handleComplete(item.id)}
-                                />
+                            <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
                                 <Button
                                     icon={<BiSolidShow size={16}/>}
                                     variant="outline"
                                     className="p-1.5"
                                     onClick={() => onView?.(String(item.id))}
+                                />
+                                <Button
+                                    icon={<MdSwapHoriz size={16}/>}
+                                    variant="outline"
+                                    className="p-1.5"
+                                    onClick={() => handleChangeStatus(item.id)}
                                 />
                             </div>
                         </td>

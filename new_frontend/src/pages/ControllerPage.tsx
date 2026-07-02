@@ -1,22 +1,29 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
-import { FilterBlock } from "@/features/control/components/FilterBlock";
+import { ControlFilterBlock } from "@/features/control/components/FilterBlock";
 import { GoSearch } from "react-icons/go";
 import { FiFilter } from "react-icons/fi";
-import { useSessionStorage } from "@/features/home/hooks/UseSessionStorage";
+import { AiOutlinePlus } from "react-icons/ai";
+import { ControlTable, type ControlFilters } from "@/features/control/components/ControlTable";
+import { Modal } from "@/components/Modal"
+import { CreateControlPopup } from "@/features/control/components/CreateControlPopup"
+
 
 export function ControllerPage() {
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState("");
     const [filterOn, setFilterOn] = useState(false);
-    const [filters, setFilters] = useSessionStorage<{
-        status?: string[];
-        frequency?: string;
-        area?: string[];
-        user_id?: number;
-        responsible_id?: number;
-    }>('taskFilters', { status: ["NOT_STARTED", "IN_PROGRESS"] });
+    const [filters, setFilters] = useState<ControlFilters>({});
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editId, setEditId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 400);
+        return () => clearTimeout(t);
+    }, [search]);
 
     return (
         <div className="flex flex-col h-full px-6 pt-7 pb-9">
@@ -35,7 +42,7 @@ export function ControllerPage() {
                     <Input
                         id="search-input"
                         type="text"
-                        placeholder="Поиск по задачам, людям, инцидентам..."
+                        placeholder="Поиск по контроллерам..."
                         containerClassName="flex-1 min-w-0"
                         className="bg-mg-surface text-sm rounded-[12px] border"
                         icon={<GoSearch />}
@@ -45,6 +52,12 @@ export function ControllerPage() {
                     <Button className="px-4 shrink-0" icon={<GoSearch />} />
                 </div>
                 <Button
+                    icon={<AiOutlinePlus />}
+                    text="Добавить"
+                    className="w-36 py-[0.55rem]"
+                    onClick={() => setIsCreateOpen(true)}
+                />
+                <Button
                     icon={<FiFilter />}
                     text="Фильтрация"
                     variant="outline"
@@ -53,11 +66,33 @@ export function ControllerPage() {
                 />
             </div>
 
-            <FilterBlock
+            <ControlFilterBlock
                 filterOn={filterOn}
                 onFilterChange={setFilters}
             />
 
+            <div className="flex-1 min-h-0 mt-5">
+                <ControlTable
+                    onTotalChange={setTotal}
+                    filters={filters}
+                    search={debouncedSearch}
+                    onView={(id: string) => setEditId(Number(id))}
+                    refreshTrigger={refreshKey}
+                />
+            </div>
+
+
+            <Modal
+                isOpen={isCreateOpen || editId !== null}
+                onClose={() => { setIsCreateOpen(false); setEditId(null); }}
+                className="w-[58rem] max-w-[90vw]"
+            >
+                <CreateControlPopup
+                    controlId={editId ?? undefined}
+                    onClose={() => { setIsCreateOpen(false); setEditId(null); }}
+                    onSaved={() => setRefreshKey(k => k + 1)}
+                />
+            </Modal>
         </div>
     )
 }
