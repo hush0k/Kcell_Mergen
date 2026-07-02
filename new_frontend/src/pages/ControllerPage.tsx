@@ -30,7 +30,7 @@ export function ControllerPage() {
             <div className="flex flex-row justify-between items-center">
                 <div className="flex flex-col space-y-1">
                     <p className="text-xs text-mg-text-3 font-bold">РЕЕСТР</p>
-                    <h2 className="text-2xl text-mg-text font-bold">Контроллеры</h2>
+                    <h2 className="text-2xl text-mg-text font-bold">Контроль</h2>
                 </div>
                 <p className="text-xs text-mg-text-2">
                     Всего: <span className="font-bold">{total}</span>

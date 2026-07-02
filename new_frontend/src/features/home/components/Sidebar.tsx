@@ -16,7 +16,7 @@ export function Sidebar() {
 
     const buttons = [
         { name: "Задачи", icon: <FaTasks size={18}/>, isOpen: true, link: 'home' },
-        { name: "Контроллеры", icon: <IoSettingsSharp size={18}/>, isOpen: false, link: 'controllers' },
+        { name: "Контроль", icon: <IoSettingsSharp size={18}/>, isOpen: false, link: 'controllers' },
         { name: "Инциденты", icon: <LuTriangleAlert size={18}/>, isOpen: false, link: 'incidents' },
         { name: "Уведомление", icon: <IoNotifications size={18}/>, isOpen: false, link: 'notifications' },
         { name: "МФС", icon: <FaClipboardList size={18}/>, isOpen: false, link: 'mfs' },
