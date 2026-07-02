@@ -3,125 +3,77 @@ import { Button } from "@/components/Button"
 import { api } from "@/api/resources"
 import { User } from "@/types/api"
 import { useSessionStorage } from "@/features/home/hooks/UseSessionStorage"
+import type { ControlFilters } from "@/features/control/components/ControlTable"
+import type { ControlStatus, Frequency } from "@/types/api"
 
-type FilterOption = { label: string; value: string | string[] }
-type FilterGroup = { name: string; values: FilterOption[] }
+interface ControlFilterProps {
+    filterOn: boolean
+    onFilterChange: (filters: ControlFilters) => void
+}
 
-const filterBy: FilterGroup[] = [
-    {
-        name: "По частоте",
-        values: [
-            { label: "Ежедневные", value: "ежедневные" },
-            { label: "Еженедельные", value: "еженедельные" },
-            { label: "Ежемесячные", value: "ежемесячные" },
-            { label: "Ежеквартальные", value: "ежеквартальные" },
-            { label: "По запросу", value: "по запросу" }
-        ]
-    },
-    {
-        name: "Область",
-        values: [
-            { label: "TF", value: "TF" },
-            { label: "IF", value: "IF" },
-            { label: "DEV", value: "DEV" },
-            { label: "RA", value: "RA" },
-            { label: "A2P", value: "A2P" },
-        ]
-    },
-    {
-        name: "По статусу",
-        values: [
-            { label: "Активный", value: "ACTIVE" },
-            { label: "Приостановлен", value: "SUSPENDED" }
-        ]
-    }
+const frequencyOptions: { label: string; value: Frequency }[] = [
+    { label: "Ежедневно", value: "ежедневно" },
+    { label: "Еженедельно", value: "еженедельно" },
+    { label: "Ежемесячно", value: "ежемесячно" },
+    { label: "Ежеквартально", value: "ежеквартально" },
+    { label: "По запросу", value: "по запросу" },
 ]
 
-interface FilterProps {
-    filterOn: boolean
-    onFilterChange: (filters: { status?: string[], frequency?: string, area?: string[], user_id?: number, responsible_id?: number }) => void
+const areaOptions = ["TF", "IF", "DEV", "RA", "A2P"]
+
+const statusOptions: { label: string; value: ControlStatus }[] = [
+    { label: "Активный", value: "ACTIVE" },
+    { label: "Приостановлен", value: "SUSPENDED" },
+]
+
+interface ControlFilterState {
+    area: string
+    controlStatus: string
+    frequency: string
+    responsibleId: string
 }
 
-interface FilterBlockState {
-    activeFilters: string[]
-    activeAreas: string[]
-    byQuery: boolean
-    userId: string
-    responsible: string
+const defaultState: ControlFilterState = {
+    area: "",
+    controlStatus: "",
+    frequency: "",
+    responsibleId: "",
 }
 
-const defaultFilterBlockState: FilterBlockState = {
-    activeFilters: ["NOT_STARTED", "IN_PROGRESS"],
-    activeAreas: [],
-    byQuery: false,
-    userId: "",
-    responsible: "",
-}
-
-export function FilterBlock({ filterOn, onFilterChange }: FilterProps) {
-    const [filterState, setFilterState] = useSessionStorage<FilterBlockState>(
-        'filterBlockState',
-        defaultFilterBlockState
+export function ControlFilterBlock({ filterOn, onFilterChange }: ControlFilterProps) {
+    const [filterState, setFilterState] = useSessionStorage<ControlFilterState>(
+        'controlFilterBlockState',
+        defaultState
     )
     const [users, setUsers] = useState<User[]>([])
-
-    const { activeFilters, activeAreas, byQuery, userId, responsible } = filterState
+    const { area, controlStatus, frequency, responsibleId } = filterState
 
     useEffect(() => {
         api.users.list().then(setUsers)
     }, [])
 
-    // применяем сохранённые фильтры при монтировании
-    useEffect(() => {
+    const emit = (next: ControlFilterState) => {
         onFilterChange({
-            status: activeFilters,
-            frequency: byQuery ? "по запросу" : undefined,
-            area: activeAreas.length ? activeAreas : undefined,
-            user_id: userId ? Number(userId) : undefined,
-            responsible_id: responsible ? Number(responsible) : undefined,
-        })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    const emit = (next: FilterBlockState) => {
-        onFilterChange({
-            status: next.activeFilters,
-            frequency: next.byQuery ? "по запросу" : undefined,
-            area: next.activeAreas.length ? next.activeAreas : undefined,
-            user_id: next.userId ? Number(next.userId) : undefined,
-            responsible_id: next.responsible ? Number(next.responsible) : undefined,
+            area: next.area || undefined,
+            control_status: (next.controlStatus || undefined) as ControlStatus | undefined,
+            frequency: (next.frequency || undefined) as Frequency | undefined,
+            responsible_id: next.responsibleId ? Number(next.responsibleId) : undefined,
         })
     }
 
-    const update = (patch: Partial<FilterBlockState>) => {
+    useEffect(() => {
+        emit(filterState)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    const update = (patch: Partial<ControlFilterState>) => {
         const next = { ...filterState, ...patch }
         setFilterState(next)
         emit(next)
     }
 
-    const toggleFilter = (values: string[]) => {
-        const set = new Set<string>(activeFilters)
-        const allActive = values.every(v => set.has(v))
-        values.forEach(v => allActive ? set.delete(v) : set.add(v))
-        update({ activeFilters: [...set] })
-    }
-
-    const toggleByQuery = () => {
-        update({ byQuery: !byQuery })
-    }
-
-    const toggleArea = (value: string) => {
-        const set = new Set<string>(activeAreas)
-        set.has(value) ? set.delete(value) : set.add(value)
-        update({ activeAreas: [...set] })
-    }
-
-    const handleUserChange = (value: string) => {
-        update({ userId: value })
-    }
-
-    const handleResponsibleChange = (value: string) => {
-        update({ responsible: value })
+    const toggle = (key: keyof ControlFilterState, value: string) => {
+        update({ [key]: filterState[key] === value ? "" : value } as Partial<ControlFilterState>)
     }
 
     return (
@@ -129,66 +81,62 @@ export function FilterBlock({ filterOn, onFilterChange }: FilterProps) {
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex flex-col space-y-4">
                     <div className="flex flex-row flex-wrap gap-x-12 gap-y-6">
-                        {filterBy.map(filter => (
-                            <div key={filter.name} className="flex flex-col gap-2">
-                                <h3 className="font-semibold text-sm text-mg-text-2">{filter.name}</h3>
-                                <div className="flex flex-row flex-wrap gap-2">
-                                    {filter.name === "По запросу" ? (
-                                        <Button
-                                            text={filter.values[0].label}
-                                            variant="outline"
-                                            className={`py-1 px-3 font-medium text-sm rounded-full w-auto ${
-                                                byQuery ? "bg-mg-purple text-white border-mg-purple hover:bg-mg-purple" : "bg-mg-surface"
-                                            }`}
-                                            onClick={toggleByQuery}
-                                        />
-                                    ) : filter.name === "Область" ? (
-                                        filter.values.map(v => {
-                                            const value = v.value as string
-                                            const isActive = activeAreas.includes(value)
-                                            return (
-                                                <Button
-                                                    key={value}
-                                                    text={v.label}
-                                                    variant="outline"
-                                                    className={`py-1 px-3 font-medium text-sm rounded-full w-auto ${
-                                                        isActive ? "bg-mg-purple text-white border-mg-purple hover:bg-mg-purple" : "bg-mg-surface"
-                                                    }`}
-                                                    onClick={() => toggleArea(value)}
-                                                />
-                                            )
-                                        })
-                                    ) : (
-                                        filter.values.map(v => {
-                                            const values = Array.isArray(v.value) ? v.value : [v.value]
-                                            const isActive = values.every(val => activeFilters.includes(val))
-                                            return (
-                                                <Button
-                                                    key={values.join("-")}
-                                                    text={v.label}
-                                                    variant="outline"
-                                                    className={`py-1 px-3 font-medium text-sm rounded-full w-auto ${
-                                                        isActive ? "bg-mg-purple text-white border-mg-purple hover:bg-mg-purple" : "bg-mg-surface"
-                                                    }`}
-                                                    onClick={() => toggleFilter(values)}
-                                                />
-                                            )
-                                        })
-                                    )}
-                                </div>
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-semibold text-sm text-mg-text-2">По частоте</h3>
+                            <div className="flex flex-row flex-wrap gap-2">
+                                {frequencyOptions.map(f => (
+                                    <Button
+                                        key={f.value}
+                                        text={f.label}
+                                        variant="outline"
+                                        className={`py-1 px-3 font-medium text-sm rounded-full w-auto ${
+                                            frequency === f.value ? "bg-mg-purple text-white border-mg-purple hover:bg-mg-purple" : "bg-mg-surface"
+                                        }`}
+                                        onClick={() => toggle("frequency", f.value)}
+                                    />
+                                ))}
                             </div>
-                        ))}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-semibold text-sm text-mg-text-2">Область</h3>
+                            <div className="flex flex-row flex-wrap gap-2">
+                                {areaOptions.map(a => (
+                                    <Button
+                                        key={a}
+                                        text={a}
+                                        variant="outline"
+                                        className={`py-1 px-3 font-medium text-sm rounded-full w-auto ${
+                                            area === a ? "bg-mg-purple text-white border-mg-purple hover:bg-mg-purple" : "bg-mg-surface"
+                                        }`}
+                                        onClick={() => toggle("area", a)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-semibold text-sm text-mg-text-2">По статусу</h3>
+                            <div className="flex flex-row flex-wrap gap-2">
+                                {statusOptions.map(s => (
+                                    <Button
+                                        key={s.value}
+                                        text={s.label}
+                                        variant="outline"
+                                        className={`py-1 px-3 font-medium text-sm rounded-full w-auto ${
+                                            controlStatus === s.value ? "bg-mg-purple text-white border-mg-purple hover:bg-mg-purple" : "bg-mg-surface"
+                                        }`}
+                                        onClick={() => toggle("controlStatus", s.value)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
                     <div className="flex flex-row flex-wrap gap-x-12 gap-y-6">
-                        <div className="flex flex-col space-y-2 ">
-                            <label
-                                htmlFor="user_id"
-                                className="text-mg-text-2 font-semibold"
-                            >Исполнитель</label>
+                        <div className="flex flex-col space-y-2">
+                            <label htmlFor="responsible_id" className="text-mg-text-2 font-semibold">Ответственный</label>
                             <select
-                                id="user_id"
-                                value={userId}
-                                onChange={(e) => handleUserChange(e.target.value)}
+                                id="responsible_id"
+                                value={responsibleId}
+                                onChange={(e) => update({ responsibleId: e.target.value })}
                                 className="bg-mg-surface text-sm rounded-xl border px-2 py-1.5 outline-none"
                             >
                                 <option value="">Выберите...</option>
@@ -206,15 +154,8 @@ export function FilterBlock({ filterOn, onFilterChange }: FilterProps) {
                         text="Сбросить все"
                         className="w-36"
                         onClick={() => {
-                            const cleared: FilterBlockState = {
-                                activeFilters: [],
-                                byQuery: false,
-                                activeAreas: [],
-                                userId: "",
-                                responsible: "",
-                            }
-                            setFilterState(cleared)
-                            onFilterChange({ status: [], frequency: undefined, area: undefined, user_id: undefined, responsible_id: undefined })
+                            setFilterState(defaultState)
+                            emit(defaultState)
                         }}
                     />
                 </div>

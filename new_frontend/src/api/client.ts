@@ -39,7 +39,7 @@ async function parseResponse(response: Response) {
   return response.text();
 }
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
   const refreshToken = tokenStorage.getRefreshToken();
 
   if (!refreshToken) {
