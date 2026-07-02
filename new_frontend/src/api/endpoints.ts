@@ -13,6 +13,7 @@ export const apiEndpoints = {
   controls: {
     root: "/controls/",
     byId: (id: number) => `/controls/${id}`,
+      changeStatus: (id: number) => `/controls/${id}/change-status`,
   },
   tasks: {
     root: "/tasks/",

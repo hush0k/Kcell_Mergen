@@ -10,6 +10,8 @@ export type TaskStatus =
   | string;
 
 export type Area = "TF" | "IF" | "A2P" | "RA" | "DEV"
+export type ControlStatus = "ACTIVE" | "SUSPENDED";
+export type Frequency = "ежедневно" | "еженедельно" | "ежемесячно" | "ежеквартально" | "по запросу";
 
 export interface TokenResponse {
   access_token: string;
@@ -116,4 +118,94 @@ export interface TaskGenerationResults {
     total_created: number;
 }
 
+export interface ControlResponse {
+    id: number;
+    area: Area;
+    name: string;
+    description: string | null;
+    time_estimate: number | null;
+    frequency: Frequency;
+    responsible_id: number | null;
+    backup_id: number | null;
+    original_user_id: number | null;
+    risk: string;
+    priority: string;
+    dashboard_url: string | null;
+    status: ControlStatus;
+    created_at: IsoDateTime;
+    updated_at: IsoDateTime;
+}
+
+export interface ControlCreate {
+    area: Area;
+    name: string;
+    description?: string | null;
+    time_estimate?: number | null;
+    frequency?: Frequency;
+    responsible_id?: number | null;
+    backup_id?: number | null;
+    risk?: string;
+    priority?: string;
+    dashboard_url?: string | null;
+    status?: ControlStatus;
+}
+
+export interface ControlWithUsers extends Omit<ControlResponse, "responsible_id" | "backup_id"> {
+    responsible_id: number | null;
+    backup_id: number | null;
+    responsible: UserBrief | null;
+    backup: UserBrief | null;
+}
+
+export interface ControlList {
+    controls: ControlWithUsers[];
+    offset: number;
+    limit: number;
+    total: number;
+}
+
+export type ControlUpdate = Partial<ControlCreate> & { original_user_id?: number | null };
+
 export type ApiRecord = Record<string, unknown>;
+
+export type NotificationType = "TASK_CREATED" | "TASK_UPDATED" | "INCIDENT_UPDATED" | string;
+
+export interface NotificationResponse {
+    id: Id;
+    notification_type: NotificationType;
+    responsible_user_id: Id | null;
+    sender: string;
+    title: string | null;
+    html_content: string;
+    error_message: string | null;
+    created_at: IsoDateTime;
+}
+
+export interface NotificationRecipient {
+    id: Id;
+    notification_id: Id;
+    recipient_id: Id;
+    is_read: boolean;
+    read_at: IsoDateTime | null;
+    notification: NotificationResponse;
+}
+
+export interface UnreadCountResponse {
+    unread_count: number;
+}
+
+// Payload pushed over the WS when a new notification arrives (see backend notification/listener.py)
+export interface NotificationPushEvent {
+    notification_id: Id;
+    title: string | null;
+    unread_count: number;
+}
+
+// Payload pushed over the WS when another recipient claims a task (see notification/service.py:become_responsible_user)
+export interface TaskClaimedEvent {
+    type: "User take task";
+    notification_id: Id;
+    user_id: Id;
+}
+
+export type NotificationSocketMessage = NotificationPushEvent | TaskClaimedEvent;

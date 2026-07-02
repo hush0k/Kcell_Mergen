@@ -9,10 +9,17 @@ import type {
   Task,
   TokenResponse,
   User,
-  TaskList,
+    ControlResponse,
+    ControlCreate,
+    Frequency,
+    ControlStatus,
+    ControlUpdate,
+    ControlList,
   TaskListWithControls,
   TaskWithControl,
   TaskGenerationResults,
+  NotificationRecipient,
+  UnreadCountResponse,
 } from "@/types/api";
 
 const crud = <TEntity, TCreate = ApiRecord, TUpdate = Partial<TCreate>>(
@@ -53,7 +60,41 @@ export const api = {
         body: payload,
       }),
   },
-  controls: crud<ApiRecord>(apiEndpoints.controls.root, apiEndpoints.controls.byId),
+    controls: {
+        ...crud<ControlResponse, ControlCreate, ControlUpdate>(apiEndpoints.controls.root, apiEndpoints.controls.byId),
+        list: (
+            params?: {
+                area?: string;
+                control_status?: ControlStatus;
+                frequency?: Frequency;
+                responsible_id?: number;
+                search?: string;
+                order_by?: "name" | "deadline_at" | "time_estimate" | "responsible_id" | "backup_id" | "status" | "created_at";
+                order_type?: "desc" | "asc";
+                page?: number;
+                per_page?: number;
+            },
+            opts?: { signal?: AbortSignal },
+        ) => {
+            const searchParams = new URLSearchParams();
+            if (params?.area) searchParams.set("area", params.area);
+            if (params?.control_status) searchParams.set("control_status", params.control_status);
+            if (params?.frequency) searchParams.set("frequency", params.frequency);
+            if (params?.responsible_id) searchParams.set("responsible_id", String(params.responsible_id));
+            if (params?.search) searchParams.set("search", params.search);
+            searchParams.set("order_by", params?.order_by ?? "created_at");
+            searchParams.set("order_type", params?.order_type ?? "desc");
+            searchParams.set("page", String(params?.page ?? 1));
+            searchParams.set("per_page", String(params?.per_page ?? 20));
+
+            return apiRequest<ControlList>(
+                `${apiEndpoints.controls.root}?${searchParams.toString()}`,
+                { signal: opts?.signal },
+            );
+        },
+        changeStatus: (id: Id) =>
+            apiRequest<null>(apiEndpoints.controls.changeStatus(id), { method: "PATCH" }),
+    },
   tasks: {
     ...crud<Task>(apiEndpoints.tasks.root, apiEndpoints.tasks.byId),
       listWithControls: (params?: { page?: number; limit?: number; status?: string[]; frequency?: string; area?: string[]; user_id?: number; responsible_id?: number; search?: string }) => {
@@ -108,8 +149,8 @@ export const api = {
       }),
   },
   notifications: {
-    list: () => apiRequest<ApiRecord[]>(apiEndpoints.notifications.root),
-    unreadCount: () => apiRequest<ApiRecord>(apiEndpoints.notifications.unreadCount),
+    list: () => apiRequest<NotificationRecipient[]>(apiEndpoints.notifications.root),
+    unreadCount: () => apiRequest<UnreadCountResponse>(apiEndpoints.notifications.unreadCount),
     read: (id: Id) =>
       apiRequest<ApiRecord>(apiEndpoints.notifications.read(id), {
         method: "POST",
