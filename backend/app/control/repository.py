@@ -1,9 +1,10 @@
 from typing import Literal
 
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.control.enums import ControlStatus, Frequency
+from app.control.enums import ControlStatus, Frequency, Area
 from app.control.model import Control
 from app.control.schemas import ControlCreate, ControlUpdate
 
@@ -16,41 +17,52 @@ class ControlRepository:
         return await self.db.get(Control, control_id)
 
     async def get_all(
-        self,
-        area: str | None = None,
-        status: ControlStatus | None = None,
-        order_by: Literal[
-            "name",
-            "deadline_at",
-            "time_estimate",
-            "responsible_id",
-            "backup_id",
-            "status",
-            "created_at",
-        ] = "created_at",
-        order_type: Literal["desc", "asc"] = "desc",
-        offset: int = 0,
-        limit: int = 20,
-    ) -> list[Control]:
+            self,
+            area: Area | None = None,
+            status: ControlStatus | None = None,
+            frequency: Frequency | None = None,
+            responsible_id: int | None = None,
+            search: str | None = None,
+            order_by: Literal[
+                "name", "deadline_at", "time_estimate",
+                "responsible_id", "backup_id", "status", "created_at",
+            ] = "created_at",
+            order_type: Literal["desc", "asc"] = "desc",
+            offset: int = 0,
+            limit: int = 20,
+    ) -> tuple[list[Control], int]:
         """Делает фильтр по полям и также сортирует список. Добавлена пагинация"""
-
-        query = select(Control)
+        filters = []
         if area:
-            query = query.where(Control.area == area)
+            filters.append(Control.area == area)
         if status is not None:
-            query = query.where(Control.status == status)
+            filters.append(Control.status == status)
+        if frequency:
+            filters.append(Control.frequency == frequency)
+        if responsible_id:
+            filters.append(Control.responsible_id == responsible_id)
+        if search:
+            filters.append(Control.name.ilike(f"%{search}%"))
+
+        count_query = select(func.count()).select_from(Control)
+        if filters:
+            count_query = count_query.where(*filters)
+        total = (await self.db.execute(count_query)).scalar_one()
+
+        query = select(Control).options(
+            joinedload(Control.responsible),
+            joinedload(Control.backup),
+        )
+        if filters:
+            query = query.where(*filters)
 
         order_column = getattr(Control, order_by)
-        if order_type == "desc":
-            query = query.order_by(order_column.desc())
-        else:
-            query = query.order_by(order_column.asc())
-
+        query = query.order_by(order_column.desc() if order_type == "desc" else order_column.asc())
         query = query.offset(offset).limit(limit)
 
         results = await self.db.execute(query)
 
-        return list(results.scalars().all())
+        return list(results.scalars().all()), total
 
     async def create(self, control_in: ControlCreate) -> Control:
         original_user_id = control_in.responsible_id
@@ -83,3 +95,14 @@ class ControlRepository:
         await self.db.commit()
         await self.db.refresh(control)
         return control
+
+    async def change_status(self, control: Control) -> None:
+        if control.status == ControlStatus.ACTIVE:
+            control.status = ControlStatus.SUSPENDED
+        else:
+            control.status = ControlStatus.ACTIVE
+
+        await self.db.commit()
+        await self.db.refresh(control)
+
+

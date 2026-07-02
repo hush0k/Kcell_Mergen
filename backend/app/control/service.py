@@ -3,10 +3,10 @@ from typing import Literal
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.control.enums import ControlStatus
+from app.control.enums import ControlStatus, Frequency
 from app.control.model import Control
 from app.control.repository import ControlRepository
-from app.control.schemas import ControlCreate, ControlUpdate
+from app.control.schemas import ControlCreate, ControlUpdate, ControlList
 from app.task.schemas import TaskCreate
 
 
@@ -86,41 +86,42 @@ class ControlService:
         return control
 
     async def get_controls(
-        self,
-        area: str | None = None,
-        control_status: ControlStatus | None = None,
-        order_by: Literal[
-            "name",
-            "deadline_at",
-            "time_estimate",
-            "responsible_id",
-            "backup_id",
-            "status",
-            "created_at",
-        ] = "created_at",
-        order_type: Literal["desc", "asc"] = "desc",
-        page: int = 1,
-        per_page: int = 20,
-    ) -> list[Control]:
-        """Возвращает список контроллеров с фильтрацией, сортировкой и пагинацией.
-
-        Args:
-            area: Фильтр по зоне (необязательный).
-            control_status: Фильтр по статусу контроллера (необязательный).
-            order_by: Поле, по которому выполняется сортировка. По умолчанию — created_at.
-            order_type: Направление сортировки — desc (убыв.) или asc (возр.). По умолчанию — desc.
-            page: Номер страницы для пагинации. По умолчанию — 1.
-            per_page: Количество записей на странице. По умолчанию — 20.
-
-        Returns:
-            Список объектов контроллеров, соответствующих фильтрам.
-        """
+            self,
+            area: str | None = None,
+            control_status: ControlStatus | None = None,
+            frequency: Frequency | None = None,
+            responsible_id: int | None = None,
+            search: str | None = None,
+            order_by: Literal[
+                "name", "deadline_at", "time_estimate",
+                "responsible_id", "backup_id", "status", "created_at",
+            ] = "created_at",
+            order_type: Literal["desc", "asc"] = "desc",
+            page: int = 1,
+            per_page: int = 20,
+    ) -> ControlList:
         offset = (page - 1) * per_page
-        return await self.repo.get_all(
+        controls, total = await self.repo.get_all(
             area=area,
             status=control_status,
+            frequency=frequency,
+            responsible_id=responsible_id,
+            search=search,
             order_by=order_by,
             order_type=order_type,
             offset=offset,
             limit=per_page,
         )
+        return ControlList(
+            controls=controls,
+            offset=offset,
+            limit=per_page,
+            total=total,
+        )
+
+
+    async def change_status(self, control_id: int) -> None:
+        control = await self.get_control_by_id(control_id)
+        if not control:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Контроллер не найден")
+        await self.repo.change_status(control)

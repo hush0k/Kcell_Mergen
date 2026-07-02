@@ -61,6 +61,19 @@ class ControlResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class ControlWithUsers(ControlResponse):
+    responsible_id: int | None = None
+    backup_id: int | None = None
+    responsible: UserBrief | None = None
+    backup: UserBrief | None = None
+
+
+class ControlList(BaseModel):
+    controls: list[ControlWithUsers]
+    offset: int
+    limit: int
+    total: int
+
 
 class ControlBrief(BaseModel):
     id: int

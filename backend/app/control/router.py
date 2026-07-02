@@ -5,9 +5,9 @@ from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.control.enums import ControlStatus
+from app.control.enums import ControlStatus, Frequency
 from app.control.model import Control
-from app.control.schemas import ControlCreate, ControlResponse, ControlUpdate
+from app.control.schemas import ControlCreate, ControlResponse, ControlUpdate, ControlList
 from app.control.service import ControlService
 from app.db.database import get_db
 from app.user.enums import UserRoles
@@ -30,28 +30,29 @@ UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.get("/", response_model=list[ControlResponse])
+@router.get("/", response_model=ControlList)
 async def get_controls(
-    service: ServiceDep,
-    _: CurrentUser,
-    area: str | None = None,
-    control_status: ControlStatus | None = None,
-    order_by: Literal[
-        "name",
-        "deadline_at",
-        "time_estimate",
-        "responsible_id",
-        "backup_id",
-        "status",
-        "created_at",
-    ] = "created_at",
-    order_type: Literal["desc", "asc"] = "desc",
-    page: int = 1,
-    per_page: int = 20,
-) -> list[Control]:
+        service: ServiceDep,
+        _: CurrentUser,
+        area: str | None = None,
+        control_status: ControlStatus | None = None,
+        frequency: Frequency | None = None,
+        responsible_id: int | None = None,
+        search: str | None = None,
+        order_by: Literal[
+            "name", "deadline_at", "time_estimate",
+            "responsible_id", "backup_id", "status", "created_at",
+        ] = "created_at",
+        order_type: Literal["desc", "asc"] = "desc",
+        page: int = 1,
+        per_page: int = 20,
+) -> ControlList:
     return await service.get_controls(
         area=area,
         control_status=control_status,
+        frequency=frequency,
+        responsible_id=responsible_id,
+        search=search,
         order_by=order_by,
         order_type=order_type,
         page=page,
@@ -97,6 +98,14 @@ async def update_control(
             detail="Для совершение операции требуется права администратора",
         )
     return await service.update_control(control_in, control_id)
+
+@router.patch("/{control_id}/change-status", status_code=http_status.HTTP_204_NO_CONTENT)
+async def change_control_status(
+        control_id: int,
+        service: ServiceDep,
+        _: CurrentUser,
+):
+    await service.change_status(control_id)
 
 
 @router.delete("/{control_id}", status_code=http_status.HTTP_204_NO_CONTENT)
