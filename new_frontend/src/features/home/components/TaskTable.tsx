@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { TaskWithControl } from "@/types/api";
+import { TaskWithControl, Task } from "@/types/api";
 import { api } from "@/api/resources";
 import { StatusIcon } from "@/features/home/components/StatusIcon";
 import { Button } from "@/components/Button";
@@ -74,33 +74,28 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
 
     const handleComplete = async (id: number) => {
         try {
-            let task = await api.tasks.get(id);
+            const task = await api.tasks.get(id);
+            let updated: Task | null = null;
+
             if (task.status === "NOT_STARTED") {
-                await api.tasks.start(id);
-                setItems(prev => prev.map(item =>
-                    item.id === id ? { ...item, status: "IN_PROGRESS" } : item
-                ));
+                updated = await api.tasks.start(id);
             } else if (task.status === "IN_PROGRESS") {
-                await api.tasks.complete(id);
-                setItems(prev => prev.map(item =>
-                    item.id === id ? { ...item, status: "COMPLETED" } : item
-                ));
+                updated = await api.tasks.complete(id);
             } else if (task.status === "COMPLETED") {
-                return
+                return;
             } else if (task.status === "OVERDUE") {
-                if (task.start_time !== null && task.start_time !== undefined) {
-                    await api.tasks.complete(id);
-                    setItems(prev => prev.map(item =>
-                        item.id === id ? { ...item, status: "COMPLETED" } : item
-                    ));
-                } else {
-                    await api.tasks.start(id);
-                    setItems(prev => prev.map(item =>
-                        item.id === id ? { ...item, status: "IN_PROGRESS" } : item
-                    ));
-                }
+                updated = task.start_time != null
+                    ? await api.tasks.complete(id)
+                    : await api.tasks.start(id);
             }
 
+            if (updated) {
+                setItems(prev => prev.map(item =>
+                    item.id === id
+                        ? { ...item, status: updated.status, start_time: updated.start_time, end_time: updated.end_time }
+                        : item
+                ));
+            }
         } catch (e) {
             console.error(e);
         }
@@ -144,6 +139,7 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                         style={{ borderBottom: "1px solid var(--mg-border)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "var(--mg-surface-2)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "var(--mg-surface)")}
+                        onClick={() => onView?.(String(item.id))}
                     >
                         <td className="px-3.5 py-2.5 text-sm whitespace-nowrap">{formatDate(item.created_at)}</td>
                         <td className="px-3.5 py-2.5 text-sm">
@@ -169,7 +165,7 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                                 : "—"}
                         </td>
                         <td className="px-3.5 py-2.5">
-                            <div className="flex gap-1.5">
+                            <div className="flex gap-1.5 " onClick={(e) => e.stopPropagation()}>
                                 <Button icon={<BiErrorAlt size={16}/>} variant="outline" className="p-1.5"/>
                                 <Button
                                     icon={item.status === "COMPLETED" ? <BsEmojiGrin size={16}/> : (item.status === "IN_PROGRESS" ? <BsEmojiSmile size={16}/> : item.status === "NOT_STARTED" ? <BsEmojiExpressionless size={16}/> : <BsEmojiFrown />)}
