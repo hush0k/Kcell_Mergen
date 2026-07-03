@@ -13,7 +13,8 @@ function buildWsUrl(token: string): string {
     const url = `${API_WS_URL}${apiEndpoints.notifications.websocket}?token=${encodeURIComponent(token)}`;
 
     if (import.meta.env.DEV) {
-        console.log("[notificationSocket] connecting to", url);
+        // token redacted on purpose — don't print JWTs to the console, even in dev
+        console.log("[notificationSocket] connecting to", url.replace(/token=[^&]+/, "token=<redacted>"));
     }
 
     return url;
@@ -80,16 +81,24 @@ class NotificationSocket {
         this.manuallyClosed = true;
         this.clearReconnectTimer();
 
-        if (this.socket) {
-            if (this.socket.readyState === WebSocket.CONNECTING) {
-                // close() на CONNECTING-сокете кидает ошибку в консоль —
-                // ждём открытия и закрываем сразу после
-                this.socket.onopen = () => this.socket?.close();
-            } else {
-                this.socket.close();
-            }
-        }
+        const socket = this.socket;
         this.socket = null;
+
+        if (!socket) return;
+
+        // Detach our handlers so this abandoned socket can no longer touch
+        // reconnect state (e.g. via a stray onclose) once we let go of it.
+        socket.onmessage = null;
+        socket.onerror = null;
+        socket.onclose = null;
+
+        if (socket.readyState === WebSocket.CONNECTING) {
+            // close() on a CONNECTING socket logs a benign browser warning —
+            // wait for it to open, then close this exact socket right after.
+            socket.onopen = () => socket.close();
+        } else {
+            socket.close();
+        }
     }
 
     private async tryRefreshAndReconnect(): Promise<void> {

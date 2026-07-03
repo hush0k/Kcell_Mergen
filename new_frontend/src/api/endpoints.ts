@@ -46,6 +46,7 @@ export const apiEndpoints = {
     root: "/notifications",
     unreadCount: "/notifications/unread-count",
     html: (id: number) => `/notifications/${id}/html`,
+      byId: (id: number) => `/notifications/${id}`,
     read: (id: number) => `/notifications/${id}/read`,
     becomeResponsibleUser: (id: number) =>
       `/notifications/${id}/become_responsible_user`,

@@ -10,39 +10,21 @@ interface NotificationState {
     notifications: NotificationRecipient[];
     unreadCount: number;
     isConnected: boolean;
+    // Set to a fresh object reference each time a genuine WS push arrives (never on
+    // setInitial), so consumers can useEffect on it to react only to real pushes.
+    lastPush: NotificationRecipient | null;
     setConnected: (connected: boolean) => void;
     handleIncoming: (data: NotificationSocketMessage) => void;
     setInitial: (notifications: NotificationRecipient[], unreadCount: number) => void;
     markAsRead: (id: Id) => Promise<void>;
-}
-
-// Live notification pushes only carry {notification_id, title, unread_count} (see backend
-// notification/listener.py), not a full NotificationRecipient — the rest is filled with
-// placeholders until the full record is fetched (e.g. via the HTML endpoint on open).
-function toPreviewRecipient(notificationId: Id, title: string | null): NotificationRecipient {
-    return {
-        id: notificationId,
-        notification_id: notificationId,
-        recipient_id: 0,
-        is_read: false,
-        read_at: null,
-        notification: {
-            id: notificationId,
-            notification_type: "TASK_CREATED",
-            responsible_user_id: null,
-            sender: "",
-            title,
-            html_content: "",
-            error_message: null,
-            created_at: new Date().toISOString(),
-        },
-    };
+    decrementUnread: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
     notifications: [],
     unreadCount: 0,
     isConnected: false,
+    lastPush: null,
 
     setConnected: (connected) => set({ isConnected: connected }),
 
@@ -54,10 +36,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             return;
         }
 
-        set((state) => ({
-            notifications: [toPreviewRecipient(data.notification_id, data.title), ...state.notifications],
-            unreadCount: data.unread_count,
-        }));
+        set({ unreadCount: data.unread_count });
+
+        // The WS payload only carries id/title/sender/unread_count — fetch the real
+        // record instead of faking one, so every field (html_content, created_at, etc.)
+        // is accurate from the moment it appears.
+        api.notifications.list({ page: 1, limit: 1 }).then((res) => {
+            const fresh = res.notifications.find((n) => n.notification_id === data.notification_id);
+            if (!fresh) return;
+
+            set((state) => {
+                if (state.notifications.some((n) => n.id === fresh.id)) return state;
+                return { notifications: [fresh, ...state.notifications], lastPush: fresh };
+            });
+        });
     },
 
     markAsRead: async (id) => {
@@ -84,4 +76,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             throw error;
         }
     },
+
+    decrementUnread: () => set((state) => ({ unreadCount: Math.max(0, state.unreadCount - 1) })),
 }));

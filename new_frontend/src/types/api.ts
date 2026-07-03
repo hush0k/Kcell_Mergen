@@ -12,6 +12,8 @@ export type TaskStatus =
 export type Area = "TF" | "IF" | "A2P" | "RA" | "DEV"
 export type ControlStatus = "ACTIVE" | "SUSPENDED";
 export type Frequency = "ежедневно" | "еженедельно" | "ежемесячно" | "ежеквартально" | "по запросу";
+export type VacationType = "ANNUAL_LEAVE" | "SICK_LEAVE" | "BUSINESS_TRIP";
+export type VacationStatus = "ACTIVE" | "CANCELLED";
 
 export interface TokenResponse {
   access_token: string;
@@ -166,6 +168,38 @@ export interface ControlList {
 
 export type ControlUpdate = Partial<ControlCreate> & { original_user_id?: number | null };
 
+export interface VacationScheduleResponse {
+    id: number;
+    user_id: number;
+    start_date: string;
+    end_date: string;
+    vacation_type: VacationType;
+    status: VacationStatus;
+    created_at: IsoDateTime;
+    updated_at: IsoDateTime;
+}
+
+export interface VacationScheduleWithUser extends VacationScheduleResponse {
+    user: UserBrief | null;
+}
+
+export interface VacationScheduleList {
+    vacations: VacationScheduleWithUser[];
+    offset: number;
+    limit: number;
+    total: number;
+}
+
+export interface VacationScheduleCreate {
+    user_id: number;
+    start_date: string;
+    end_date: string;
+    vacation_type?: VacationType;
+    status?: VacationStatus;
+}
+
+export type VacationScheduleUpdate = Partial<VacationScheduleCreate>;
+
 export type ApiRecord = Record<string, unknown>;
 
 export type NotificationType = "TASK_CREATED" | "TASK_UPDATED" | "INCIDENT_UPDATED" | string;
@@ -179,6 +213,8 @@ export interface NotificationResponse {
     html_content: string;
     error_message: string | null;
     created_at: IsoDateTime;
+    preview: string;
+    responsible_user: UserBrief | null;
 }
 
 export interface NotificationRecipient {
@@ -188,6 +224,14 @@ export interface NotificationRecipient {
     is_read: boolean;
     read_at: IsoDateTime | null;
     notification: NotificationResponse;
+    user: UserBrief | null;
+}
+
+export interface NotificationsList {
+    notifications: NotificationRecipient[];
+    offset: number;
+    limit: number;
+    total: number;
 }
 
 export interface UnreadCountResponse {
@@ -198,6 +242,7 @@ export interface UnreadCountResponse {
 export interface NotificationPushEvent {
     notification_id: Id;
     title: string | null;
+    sender: string;
     unread_count: number;
 }
 
