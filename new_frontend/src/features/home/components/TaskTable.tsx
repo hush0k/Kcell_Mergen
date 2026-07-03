@@ -168,7 +168,12 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                             <div className="flex gap-1.5 " onClick={(e) => e.stopPropagation()}>
                                 <Button icon={<BiErrorAlt size={16}/>} variant="outline" className="p-1.5"/>
                                 <Button
-                                    icon={item.status === "COMPLETED" ? <BsEmojiGrin size={16}/> : (item.status === "IN_PROGRESS" ? <BsEmojiSmile size={16}/> : item.status === "NOT_STARTED" ? <BsEmojiExpressionless size={16}/> : <BsEmojiFrown />)}
+                                    icon={
+                                        item.status === "COMPLETED" ? <BsEmojiGrin size={16} className="text-mg-completed-tx" /> :
+                                            item.status === "IN_PROGRESS" ? <BsEmojiSmile size={16} className="text-mg-in-process-tx" /> :
+                                                item.status === "NOT_STARTED" ? <BsEmojiExpressionless size={16} className="text-mg-not-started-tx" /> :
+                                                    <BsEmojiFrown size={16} className="text-mg-overdue-tx" />
+                                    }
                                     variant="outline"
                                     className="p-1.5"
                                     onClick={() => handleComplete(item.id)}
