@@ -1,15 +1,17 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from bs4 import BeautifulSoup
+from pydantic import BaseModel, computed_field
 
 from app.notification.enums import NotificationTypes
-from app.user.schemas import UserResponse
+from app.user.schemas import UserBrief
 
 
 class NotificationResponse(BaseModel):
     id: int
     notification_type: NotificationTypes
     responsible_user_id: int | None
+    responsible_user: UserBrief | None
     sender: str
     title: str | None
     html_content: str
@@ -17,6 +19,12 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @computed_field
+    @property
+    def preview(self) -> str:
+        text = BeautifulSoup(self.html_content, "html.parser").get_text(separator=" ", strip=True)
+        return text[:120] + ("…" if len(text) > 120 else "")
 
 class NotificationCreate(BaseModel):
     notification_type: NotificationTypes = NotificationTypes.TASK_CREATED
@@ -34,6 +42,15 @@ class NotificationRecipientResponse(BaseModel):
     is_read: bool
     read_at: datetime | None
     notification: NotificationResponse
+    user: UserBrief
+
+    model_config = {"from_attributes": True}
+
+class NotificationsList(BaseModel):
+    notifications: list[NotificationRecipientResponse]
+    offset: int
+    limit: int
+    total: int
 
     model_config = {"from_attributes": True}
 

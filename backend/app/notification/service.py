@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.notification.connection_manager import manager
 from app.notification.model import Notification, NotificationRecipient
 from app.notification.repository import NotificationRepository
-from app.notification.schemas import NotificationRecipientResponse, UnreadCountResponse, NotificationCreate
+from app.notification.schemas import NotificationRecipientResponse, UnreadCountResponse, NotificationCreate, NotificationsList
 
 
 class NotificationService:
@@ -14,10 +14,23 @@ class NotificationService:
         self.repo = NotificationRepository(db)
 
     async def get_user_notifications(
-            self, user_id: int, page: int, limit: int
-    ) -> list[NotificationRecipient]:
+            self, user_id: int, page: int, limit: int, is_read: bool | None = None
+    ) -> NotificationsList:
         offset = (page - 1) * limit
-        return await self.repo.get_user_notifications(user_id, offset, limit)
+        notifications = await self.repo.get_user_notifications(user_id, offset, limit, is_read)
+        total = await self.repo.get_user_notifications_count(user_id, is_read)
+        return NotificationsList(
+            notifications=notifications,
+            offset=offset,
+            limit=limit,
+            total=total,
+        )
+
+    async def get_notification(self, notification_id: int, user_id: int) -> NotificationRecipient:
+        recipient = await self.repo.get_recipient_by_notification_and_user(notification_id, user_id)
+        if not recipient:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Уведомление не найдено")
+        return recipient
 
     async def get_unread_count(self, user_id: int) -> UnreadCountResponse:
         count = await self.repo.get_unread_count(user_id)

@@ -12,7 +12,7 @@ from app.notification.model import Notification
 from app.notification.schemas import (
     NotificationRecipientResponse,
     NotificationReadResponse,
-    UnreadCountResponse, NotificationResponse, NotificationCreate,
+    UnreadCountResponse, NotificationResponse, NotificationCreate, NotificationsList,
 )
 from app.notification.service import NotificationService
 from app.user.model import User
@@ -26,14 +26,15 @@ def get_service(db: AsyncSession = Depends(get_db)) -> NotificationService:
 ServiceDep = Annotated[NotificationService, Depends(get_service)]
 
 
-@router.get("", response_model=list[NotificationRecipientResponse])
+@router.get("", response_model=NotificationsList)
 async def get_notifications(
         service: ServiceDep,
         page: int = Query(1, ge=1),
         limit: int = Query(20, ge=1, le=100),
+        is_read: bool | None = Query(None),
         current_user: User = Depends(get_current_user),
 ):
-    return await service.get_user_notifications(current_user.id, page, limit)
+    return await service.get_user_notifications(current_user.id, page, limit, is_read)
 
 
 @router.get("/unread-count", response_model=UnreadCountResponse)
@@ -62,6 +63,7 @@ async def mark_as_read(
 ):
     return await service.mark_as_read(notification_id, current_user.id)
 
+
 @router.patch("/{notification_id}/become_responsible_user", response_model=NotificationResponse)
 async def become_responsible_user(
         service: ServiceDep,
@@ -69,6 +71,7 @@ async def become_responsible_user(
         current_user: User = Depends(get_current_user),
 ) -> Notification:
     return await service.become_responsible_user(notification_id, current_user.id)
+
 
 @router.post("/", response_model=NotificationResponse)
 async def create_notification_endpoint(
@@ -78,6 +81,7 @@ async def create_notification_endpoint(
 ) -> Notification:
     return await service.create_notification(notification_in)
 
+
 @router.websocket("/ws")
 async def websocket_endpoint(
         websocket: WebSocket,
@@ -86,6 +90,10 @@ async def websocket_endpoint(
 ):
     user = await get_current_user_by_token(token, db)
     if not user:
+        # Must accept before closing so the browser actually receives the
+        # 1008 close code instead of seeing a bare HTTP 403 handshake
+        # rejection (which JS reports as an opaque code 1006 close).
+        await websocket.accept()
         await websocket.close(code=1008)
         return
 
@@ -95,3 +103,11 @@ async def websocket_endpoint(
             await websocket.receive_text()
     except WebSocketDisconnect:
         await manager.disconnect(user.id, websocket)
+
+@router.get("/{notification_id}", response_model=NotificationRecipientResponse)
+async def get_notification(
+        service: ServiceDep,
+        notification_id: int,
+        current_user: User = Depends(get_current_user),
+):
+    return await service.get_notification(notification_id, current_user.id)

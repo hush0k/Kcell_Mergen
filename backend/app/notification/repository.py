@@ -15,7 +15,12 @@ class NotificationRepository:
             self, notification_id: int, user_id: int
     ) -> NotificationRecipient | None:
         result = await self.db.execute(
-            select(NotificationRecipient).where(
+            select(NotificationRecipient)
+            .options(
+                joinedload(NotificationRecipient.notification).joinedload(Notification.responsible_user),
+                joinedload(NotificationRecipient.user),
+            )
+            .where(
                 NotificationRecipient.notification_id == notification_id,
                 NotificationRecipient.recipient_id == user_id,
                 )
@@ -23,17 +28,39 @@ class NotificationRepository:
         return result.scalar_one_or_none()
 
     async def get_user_notifications(
-            self, user_id: int, offset: int, limit: int
+            self,
+            user_id: int,
+            offset: int,
+            limit: int,
+            is_read: bool | None = None,
     ) -> list[NotificationRecipient]:
-        result = await self.db.execute(
+        query = (
             select(NotificationRecipient)
             .where(NotificationRecipient.recipient_id == user_id)
-            .options(joinedload(NotificationRecipient.notification))
-            .order_by(NotificationRecipient.id.desc())
-            .offset(offset)
-            .limit(limit)
+            .options(
+                joinedload(NotificationRecipient.notification).joinedload(Notification.responsible_user),
+                joinedload(NotificationRecipient.user),
+            )
+        )
+        if is_read is not None:
+            query = query.where(NotificationRecipient.is_read.is_(is_read))
+
+        result = await self.db.execute(
+            query.order_by(NotificationRecipient.id.desc()).offset(offset).limit(limit)
         )
         return list(result.scalars().unique().all())
+
+    async def get_user_notifications_count(
+            self,
+            user_id: int,
+            is_read: bool | None = None,
+    ) -> int:
+        query = select(func.count()).where(NotificationRecipient.recipient_id == user_id)
+        if is_read is not None:
+            query = query.where(NotificationRecipient.is_read.is_(is_read))
+
+        result = await self.db.execute(query)
+        return result.scalar_one()
 
     async def get_unread_count(self, user_id: int) -> int:
         result = await self.db.execute(
