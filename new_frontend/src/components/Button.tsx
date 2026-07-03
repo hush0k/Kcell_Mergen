@@ -26,14 +26,29 @@ const button = cva(
     }
 );
 
+const badge = cva(
+    "px-1.5 rounded-full text-sm font-semibold",
+    {
+        variants: {
+            variant: {
+                primary: "bg-white/20 text-white",
+                outline: "bg-mg-purple-soft text-mg-purple",
+                ghost: "bg-mg-purple-soft text-mg-purple",
+                danger: "bg-mg-danger-bg text-mg-danger-fg",
+            },
+        },
+    }
+);
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: "primary" | "outline" | "ghost" | "danger";
     size?: "sm" | "md";
     icon?: React.ReactNode;
     text?: string;
+    statistics?: number;
 }
 
-export function Button({ variant, size, icon, text, onClick, className, ...props }: ButtonProps) {
+export function Button({ variant, size, icon, text, onClick, statistics, className, ...props }: ButtonProps) {
     const iconOnly = !!icon && !text;
     return (
         <button
@@ -43,6 +58,11 @@ export function Button({ variant, size, icon, text, onClick, className, ...props
         >
             {icon}
             {text}
+            {statistics !== undefined && (
+                <div className={badge({ variant: variant ?? "primary" })}>
+                    {statistics}
+                </div>
+            )}
         </button>
     );
 }

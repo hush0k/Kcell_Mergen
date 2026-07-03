@@ -7,18 +7,20 @@ import { TbReportSearch } from "react-icons/tb";
 import { LiSidebar } from "@/features/home/components/LiSidebar"
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSidebar } from "@/contexts/SidebarContext"
+import { useNotificationStore } from "@/features/notifications/store"
 
 
 export function Sidebar() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { collapsed } = useSidebar();
+    const unreadCount = useNotificationStore(s => s.unreadCount);
 
     const buttons = [
         { name: "Задачи", icon: <FaTasks size={18}/>, isOpen: true, link: 'home' },
         { name: "Контроль", icon: <IoSettingsSharp size={18}/>, isOpen: false, link: 'controllers' },
         { name: "Инциденты", icon: <LuTriangleAlert size={18}/>, isOpen: false, link: 'incidents' },
-        { name: "Уведомление", icon: <IoNotifications size={18}/>, isOpen: false, link: 'notifications' },
+        { name: "Уведомление", icon: <IoNotifications size={18}/>, isOpen: false, link: 'notifications', statistics: unreadCount },
         { name: "МФС", icon: <FaClipboardList size={18}/>, isOpen: false, link: 'mfs' },
         { name: "Отпуски", icon: <MdOutlineHolidayVillage size={18}/>, isOpen: false, link: 'vacation' },
         { name: "Отчеты", icon: <TbReportSearch size={18}/>, isOpen: false, link: 'reports' },
@@ -34,6 +36,7 @@ export function Sidebar() {
                     isOpen={pathname === `/${button.link}`}
                     onClick = { () => navigate(`/${button.link}`)}
                     collapsed={collapsed}
+                    statistics={button.statistics}
                 />
             ))}
         </div>
