@@ -21,6 +21,7 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "apscheduler>=3.11.2",
     "websockets>=16.0",
+    "beautifulsoup4>=4.15.0",
 ]
 
 [dependency-groups]
