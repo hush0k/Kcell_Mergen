@@ -10,10 +10,12 @@ from app.user.model import User
 from app.vacation_schedule.model import VacationSchedule
 from app.vacation_schedule.schemas import (
     VacationScheduleCreate,
+    VacationScheduleList,
     VacationScheduleRemainingList,
     VacationScheduleResponse,
     VacationScheduleUpdate,
 )
+from app.vacation_schedule.enums import VacationStatus, VacationType
 from app.vacation_schedule.service import VacationScheduleService
 
 router = APIRouter(prefix="/api/v1/vacation-schedule", tags=["Vacation schedule"])
@@ -29,11 +31,24 @@ ServiceDep = Annotated[VacationScheduleService, Depends(get_vacation_schedule_se
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.get("/", response_model=list[VacationScheduleResponse])
+@router.get("/", response_model=VacationScheduleList)
 async def get_all_vacation_schedule(
-    service: ServiceDep, current_user: CurrentUser, page: int = 1, limit: int = 20
-) -> list[VacationSchedule]:
-    return await service.get_all(current_user, page, limit)
+    service: ServiceDep,
+    current_user: CurrentUser,
+    page: int = 1,
+    limit: int = 20,
+    status: VacationStatus | None = None,
+    vacation_type: VacationType | None = None,
+    search: str | None = None,
+) -> VacationScheduleList:
+    return await service.get_all(
+        current_user=current_user,
+        page=page,
+        limit=limit,
+        status=status,
+        vacation_type=vacation_type,
+        search=search,
+    )
 
 
 @router.post(
@@ -49,14 +64,33 @@ async def create_vacation_schedule(
     return await service.create(vacation_in, current_user)
 
 
+@router.get(
+    "/vacation-remaining-days", response_model=list[VacationScheduleRemainingList]
+)
+async def get_vacation_remaining_days(
+    service: ServiceDep,
+    current_user: CurrentUser,
+) -> list[VacationScheduleRemainingList]:
+    return await service.get_active_vacations_with_remaining_days(current_user)
+
+
+@router.get("/{vacation_id}", response_model=VacationScheduleResponse)
+async def get_vacation_schedule(
+    service: ServiceDep,
+    vacation_id: int,
+    current_user: CurrentUser,
+) -> VacationSchedule:
+    return await service.get_by_id(vacation_id, current_user)
+
+
 @router.patch("/{vacation_id}", response_model=VacationScheduleResponse)
 async def update_vacation_schedule(
     service: ServiceDep,
-    vacatiod_id: int,
+    vacation_id: int,
     vacation_in: VacationScheduleUpdate,
     current_user: CurrentUser,
 ) -> VacationSchedule:
-    return await service.update(vacatiod_id, vacation_in, current_user)
+    return await service.update(vacation_id, vacation_in, current_user)
 
 
 @router.delete("/{vacation_id}", status_code=http_status.HTTP_204_NO_CONTENT)
@@ -67,12 +101,3 @@ async def delete_vacation_schedule(
 ) -> None:
     await service.delete(vacation_id, current_user)
 
-
-@router.get(
-    "/vacation-remaining-days", response_model=list[VacationScheduleRemainingList]
-)
-async def get_vacation_remaining_days(
-    service: ServiceDep,
-    current_user: CurrentUser,
-) -> list[VacationScheduleRemainingList]:
-    return await service.get_active_vacations_with_remaining_days(current_user)

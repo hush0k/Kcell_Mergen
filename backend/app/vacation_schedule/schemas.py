@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from app.user.schemas import UserBrief
 from app.vacation_schedule.enums import VacationStatus, VacationType
 
 UserId = Annotated[int, Field(gt=0)]
@@ -29,11 +30,23 @@ class VacationScheduleUpdate(BaseModel):
 
 
 class VacationScheduleResponse(VacationScheduleBase):
+    id: int
     user_id: UserId
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class VacationScheduleWithUser(VacationScheduleResponse):
+    user: UserBrief | None = None
+
+
+class VacationScheduleList(BaseModel):
+    vacations: list[VacationScheduleWithUser]
+    offset: int
+    limit: int
+    total: int
 
 
 class VacationScheduleRemainingList(BaseModel):
