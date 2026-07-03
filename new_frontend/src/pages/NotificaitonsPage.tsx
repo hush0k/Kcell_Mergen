@@ -206,9 +206,6 @@ export function NotificaitonsPage() {
                                 />
 
                             </div>
-                            <div className={"flex flex-row items-center pr-8 justify-end h-16x  bg-mg-purple-soft w-full rounded-br-3xl border-t border-mg-purple-2"}>
-
-                            </div>
                         </div>
                     ) :(
                         <div className="flex flex-col h-full justify-center items-center space-y-3">

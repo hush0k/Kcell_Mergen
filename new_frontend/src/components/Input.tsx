@@ -6,13 +6,14 @@ interface InputProps {
     onChange?: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>
     onKeyDown?: React.KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>
     error?: string
+    rows?: number
     icon?: React.ReactNode
     autoFocus?: boolean
     className?: string
     containerClassName?: string
 }
 
-export function Input({ id, placeholder, type, value, onChange, onKeyDown, error, icon, className, containerClassName, autoFocus }: InputProps) {
+export function Input({ id, placeholder, type, value, onChange, onKeyDown, error, icon, className, containerClassName, rows, autoFocus }: InputProps) {
     const sharedClassName = `w-full py-3 text-base font-normal text-mg-text bg-mg-purple-soft-2 border-2 rounded-2xl outline-none focus:ring-2 focus:outline-none cursor-text transition-all duration-200 ${
         icon ? "pl-9 pr-3" : "px-3"
     } ${
@@ -34,6 +35,7 @@ export function Input({ id, placeholder, type, value, onChange, onKeyDown, error
                         id={id}
                         placeholder={placeholder}
                         value={value}
+                        rows={rows}
                         onChange={onChange}
                         onKeyDown={onKeyDown}
                         className={sharedClassName}

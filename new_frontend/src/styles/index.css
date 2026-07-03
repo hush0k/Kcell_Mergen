@@ -227,7 +227,7 @@
     position: sticky;
     top: 0;
     z-index: 30;
-    height: 72px;
+    height: 58px;
     border-bottom: 1px solid var(--mg-border);
     background: color-mix(in srgb, var(--mg-surface) 92%, transparent);
     backdrop-filter: blur(14px);
