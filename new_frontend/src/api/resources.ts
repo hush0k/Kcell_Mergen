@@ -18,9 +18,18 @@ import type {
   TaskListWithControls,
   TaskWithControl,
   TaskGenerationResults,
-  NotificationRecipient,
+    NotificationRecipient,
+  NotificationsList,
   UnreadCountResponse,
 } from "@/types/api";
+import type {
+  VacationScheduleCreate,
+  VacationScheduleList,
+  VacationScheduleResponse,
+  VacationScheduleUpdate,
+  VacationStatus,
+  VacationType,
+} from "@/types/vacation";
 
 const crud = <TEntity, TCreate = ApiRecord, TUpdate = Partial<TCreate>>(
   root: string,
@@ -127,10 +136,44 @@ export const api = {
         method: "POST",
       }),
   },
-  vacationSchedule: crud<ApiRecord>(
-    apiEndpoints.vacationSchedule.root,
-    apiEndpoints.vacationSchedule.byId,
-  ),
+  vacationSchedule: {
+    list: (
+      params?: {
+        page?: number;
+        limit?: number;
+        status?: VacationStatus;
+        vacation_type?: VacationType;
+        search?: string;
+      },
+      opts?: { signal?: AbortSignal },
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", String(params?.page ?? 1));
+      searchParams.set("limit", String(params?.limit ?? 20));
+      if (params?.status) searchParams.set("status", params.status);
+      if (params?.vacation_type) searchParams.set("vacation_type", params.vacation_type);
+      if (params?.search) searchParams.set("search", params.search);
+
+      return apiRequest<VacationScheduleList>(
+        `${apiEndpoints.vacationSchedule.root}?${searchParams.toString()}`,
+        { signal: opts?.signal },
+      );
+    },
+    get: (id: Id) =>
+      apiRequest<VacationScheduleResponse>(apiEndpoints.vacationSchedule.byId(id)),
+    create: (payload: VacationScheduleCreate) =>
+      apiRequest<VacationScheduleResponse>(apiEndpoints.vacationSchedule.root, {
+        method: "POST",
+        body: payload,
+      }),
+    update: (id: Id, payload: VacationScheduleUpdate) =>
+      apiRequest<VacationScheduleResponse>(apiEndpoints.vacationSchedule.byId(id), {
+        method: "PATCH",
+        body: payload,
+      }),
+    remove: (id: Id) =>
+      apiRequest<null>(apiEndpoints.vacationSchedule.byId(id), { method: "DELETE" }),
+  },
   incidents: {
     ...crud<ApiRecord>(apiEndpoints.incidents.root, apiEndpoints.incidents.byId),
     updateStatus: (id: Id, payload: ApiRecord) =>
@@ -149,7 +192,23 @@ export const api = {
       }),
   },
   notifications: {
-    list: () => apiRequest<NotificationRecipient[]>(apiEndpoints.notifications.root),
+    list: (
+      params?: { page?: number; limit?: number; is_read?: boolean },
+      opts?: { signal?: AbortSignal },
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", String(params?.page ?? 1));
+      searchParams.set("limit", String(params?.limit ?? 20));
+      if (params?.is_read !== undefined) searchParams.set("is_read", String(params.is_read));
+
+      return apiRequest<NotificationsList>(
+        `${apiEndpoints.notifications.root}?${searchParams.toString()}`,
+        { signal: opts?.signal },
+      );
+    },
+
+      get: (id: Id, opts?: { signal?: AbortSignal }) =>
+          apiRequest<NotificationRecipient>(apiEndpoints.notifications.byId(id), { signal: opts?.signal }),
     unreadCount: () => apiRequest<UnreadCountResponse>(apiEndpoints.notifications.unreadCount),
     read: (id: Id) =>
       apiRequest<ApiRecord>(apiEndpoints.notifications.read(id), {

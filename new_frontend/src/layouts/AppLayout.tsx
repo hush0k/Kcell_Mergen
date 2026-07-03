@@ -14,7 +14,7 @@ export function AppLayout() {
         const setInitial = useNotificationStore.getState().setInitial;
 
         Promise.all([api.notifications.list(), api.notifications.unreadCount()])
-            .then(([notifications, { unread_count }]) => setInitial(notifications, unread_count))
+            .then(([{ notifications }, { unread_count }]) => setInitial(notifications, unread_count))
             .catch((error) => console.error("[AppLayout] failed to load initial notifications", error));
     }, []);
 
