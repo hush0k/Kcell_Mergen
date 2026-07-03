@@ -40,6 +40,7 @@ async def handle_new_notification(notification_id: int) -> None:
                 await manager.send_to_user(user_id, {
                     "notification_id": notification_id,
                     "title": notification.title,
+                    "sender": notification.sender,
                     "unread_count": unread_counts[user_id],
                 })
 
