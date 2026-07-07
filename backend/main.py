@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.atlas.router import router as atlas_router
 from app.auth.router import router as auth_router
 from app.control.router import router as control_router
 from app.db.database import create_schema
@@ -42,6 +43,7 @@ app.include_router(task_router)
 app.include_router(vacation_schedule_router)
 app.include_router(incident_router)
 app.include_router(mfs_router)
+app.include_router(atlas_router)
 app.include_router(notification_router)
 
 

@@ -17,6 +17,16 @@ class Settings(BaseSettings):
     MFS_DATABASE_URL: str
     MFS_BLACKLIST_AUTHOR: str = "app_fraud"
 
+    # Atlas (CODA) — сторонний сервис, переподключается независимо от MFS.
+    ATLAS_API_BASE_URL: str = "https://atlas-customers-api.atlas.kcell.kz"
+    ATLAS_USER: str = ""
+    ATLAS_PASSWORD: str = ""
+    ATLAS_VERIFY_SSL: bool = False
+    ATLAS_NOTE_DELAY_SEC: float = 1
+    ATLAS_REQUEST_TIMEOUT: int = 60
+    ATLAS_GET_CLNT_FN: str = "get_clnt_by_msisdn"
+    ATLAS_GET_CLNT_SCHEMA: str = "app_fraud"
+
     @property
     def database_url(self) -> str:
         return (

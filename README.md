@@ -2,6 +2,8 @@
 
 FastAPI бэкенд для внутренней системы управления контролями и задачами Kcell.
 
+# Last migration: 9c1dedc8bd2c
+
 ## Стек
 
 - Python 3.14
