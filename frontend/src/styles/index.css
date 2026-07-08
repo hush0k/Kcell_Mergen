@@ -241,6 +241,10 @@
     color: var(--mg-purple);
   }
 
+  .mg-note-logo{
+      font-family: "Gros Ventre", Georgia, serif;
+  }
+
   .mg-page-title {
     color: var(--mg-text);
     font-size: 25px;

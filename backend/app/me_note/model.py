@@ -1,11 +1,14 @@
-from sqlalchemy import Integer, String, Enum, ForeignKey, Boolean
-from sqlalchemy.orm import mapped_column, Mapped
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Integer, String, Enum, ForeignKey, Boolean, Text, ARRAY
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.core.config import settings
 from app.core.mixins import TimeStampMixin
 from app.db.database import Base
-from app.me_note.enum import MimeTypes
 
+if TYPE_CHECKING:
+    from app.user.model import User
 
 class MeNote(Base, TimeStampMixin):
     __tablename__ = "me_note"
@@ -13,23 +16,21 @@ class MeNote(Base, TimeStampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, default="Undefined")
-    mime_type: Mapped[MimeTypes] = mapped_column(
-        Enum(
-            MimeTypes,
-            schema=settings.POSTGRES_SCHEMA,
-            name="mime_types",
-            values_callable=lambda x: [e.name for e in x],
-        ),
-        default=MimeTypes.MD,
-        nullable=False,
-    )
-    file_path: Mapped[str] = mapped_column(String, nullable=False, default="Undefined")
-    file_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    creater_id: Mapped[int] = mapped_column(
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    creater_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
     )
-    last_modifier_id: Mapped[int] = mapped_column(
+    last_modifier_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
     )
     is_editing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    editor_id: Mapped[int | None] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
+    )
+
+
+    creater: Mapped["User"] = relationship("User", foreign_keys=[creater_id])
+    last_modifier: Mapped["User"] = relationship("User", foreign_keys=[last_modifier_id])
+    editor: Mapped["User"] = relationship("User", foreign_keys=[editor_id])
 

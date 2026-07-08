@@ -7,6 +7,7 @@ import { MfsPage } from "@/pages/MfsPage"
 import { NotificaitonsPage } from "@/pages/NotificaitonsPage"
 import { ReportsPage } from "@/pages/ReportsPage"
 import { VacationPage } from "@/pages/VacationPage"
+import { MergenNoteMainPage } from "@/pages/MergenNoteMainPage"
 import { PrivateRoute } from '@/components/PrivateRoute'
 import { Navigate } from 'react-router-dom'
 import { AppLayout } from "@/layouts/AppLayout"
@@ -25,6 +26,7 @@ export function App() {
                     <Route path="/vacation" element={<VacationPage />} />
                     <Route path="/controllers" element={<ControllerPage />} />
                 </Route>
+
                 <Route path="/" element={<Navigate to="/home" replace />} />
 
             </Routes>
