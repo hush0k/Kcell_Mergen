@@ -1,0 +1,107 @@
+create function update_overdue_task_dates() returns integer
+    language plpgsql
+as
+$$
+        DECLARE
+            today_date DATE := CURRENT_DATE;
+            friday_date DATE;
+            quarter_end DATE;
+            quarter_num INTEGER;
+            updated_count INTEGER := 0;
+            deleted_count INTEGER := 0;
+            dow_today INTEGER;
+            days_to_friday INTEGER;
+        BEGIN
+            dow_today := EXTRACT(DOW FROM today_date)::INTEGER;
+
+            IF dow_today = 0 THEN
+                days_to_friday := 5;
+            ELSIF dow_today <= 5 THEN
+                days_to_friday := 5 - dow_today;
+                IF days_to_friday = 0 THEN
+                    days_to_friday := 7;
+                END IF;
+            ELSE
+                days_to_friday := 6;
+            END IF;
+            friday_date := today_date + (days_to_friday || ' days')::INTERVAL;
+
+            -- Обновляем еженедельные
+            UPDATE kcell_web.task t
+            SET deadline_time = (friday_date || ' 23:59:59')::TIMESTAMP WITH TIME ZONE
+            FROM kcell_web.control c
+            WHERE t.control_id = c.id
+                AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                AND t.deadline_time::DATE < today_date
+                AND c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('еженедельно', 'weekly')
+                AND NOT EXISTS (
+                    SELECT 1 FROM kcell_web.task t2
+                    WHERE t2.control_id = t.control_id
+                        AND t2.deadline_time::DATE = friday_date
+                );
+
+            GET DIAGNOSTICS updated_count = ROW_COUNT;
+
+            -- Удаляем дубликаты еженедельных
+            DELETE FROM kcell_web.task t
+            USING kcell_web.control c
+            WHERE t.control_id = c.id
+                AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                AND t.deadline_time::DATE < today_date
+                AND c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('еженедельно', 'weekly')
+                AND EXISTS (
+                    SELECT 1 FROM kcell_web.task t2
+                    WHERE t2.control_id = t.control_id
+                        AND t2.deadline_time::DATE >= (friday_date - INTERVAL '6 days')::DATE
+                        AND t2.deadline_time::DATE <= friday_date
+                        AND t2.id != t.id
+                        AND t2.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                );
+
+            GET DIAGNOSTICS deleted_count = ROW_COUNT;
+
+            -- Обновляем ежемесячные
+            UPDATE kcell_web.task t
+            SET deadline_time = (
+                (DATE_TRUNC('month', today_date) + INTERVAL '1 month - 1 day')::DATE || ' 23:59:59'
+            )::TIMESTAMP WITH TIME ZONE
+            FROM kcell_web.control c
+            WHERE t.control_id = c.id
+                AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                AND t.deadline_time::DATE < today_date
+                AND EXTRACT(YEAR FROM t.deadline_time) = EXTRACT(YEAR FROM today_date)
+                AND EXTRACT(MONTH FROM t.deadline_time) = EXTRACT(MONTH FROM today_date)
+                AND c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('ежемесячно', 'monthly');
+
+            -- Обновляем ежеквартальные
+            quarter_num := (EXTRACT(MONTH FROM today_date)::INTEGER - 1) / 3;
+            IF quarter_num = 3 THEN
+                quarter_end := (DATE_TRUNC('year', today_date) + INTERVAL '1 year - 1 day')::DATE;
+            ELSE
+                quarter_end := (DATE_TRUNC('year', today_date) + ((quarter_num + 1) * 3 || ' months - 1 day')::INTERVAL)::DATE;
+            END IF;
+
+            UPDATE kcell_web.task t
+            SET deadline_time = (quarter_end || ' 23:59:59')::TIMESTAMP WITH TIME ZONE
+            FROM kcell_web.control c
+            WHERE t.control_id = c.id
+                AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                AND t.deadline_time::DATE < today_date
+                AND c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('ежеквартально', 'quarterly')
+                AND quarter_end >= today_date
+                AND NOT EXISTS (
+                    SELECT 1 FROM kcell_web.task t2
+                    WHERE t2.control_id = t.control_id
+                        AND t2.deadline_time::DATE = quarter_end
+                );
+
+            RETURN updated_count + deleted_count;
+        END;
+        $$;
+
+alter function update_overdue_task_dates() owner to kanysh;
+

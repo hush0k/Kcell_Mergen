@@ -1,0 +1,53 @@
+create function generate_quarterly_tasks() returns integer
+    language plpgsql
+as
+$$
+        DECLARE
+            today_date DATE := CURRENT_DATE;
+            quarter_start DATE;
+            quarter_end DATE;
+            quarter_num INTEGER;
+            deadline_ts TIMESTAMP WITH TIME ZONE;
+            new_tasks_count INTEGER := 0;
+        BEGIN
+            -- Генерируем только 1-го числа квартала (1, 4, 7, 10 месяц)
+            IF EXTRACT(DAY FROM today_date) != 1 OR EXTRACT(MONTH FROM today_date) NOT IN (1, 4, 7, 10) THEN
+                RETURN 0;
+            END IF;
+
+            quarter_num := (EXTRACT(MONTH FROM today_date)::INTEGER - 1) / 3;
+            quarter_start := DATE_TRUNC('year', today_date)::DATE + (quarter_num * 3 || ' months')::INTERVAL;
+
+            IF quarter_num = 3 THEN
+                quarter_end := (DATE_TRUNC('year', today_date) + INTERVAL '1 year - 1 day')::DATE;
+            ELSE
+                quarter_end := (DATE_TRUNC('year', today_date) + ((quarter_num + 1) * 3 || ' months - 1 day')::INTERVAL)::DATE;
+            END IF;
+
+            deadline_ts := (quarter_end || ' 23:59:59')::TIMESTAMP WITH TIME ZONE;
+
+            INSERT INTO kcell_web.task (control_id, user_id, deadline_time, status)
+            SELECT
+                c.id,
+                NULL,
+                deadline_ts,
+                'NOT_STRATED'
+            FROM kcell_web.control c
+            WHERE c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('ежеквартально', 'quarterly')
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM kcell_web.task t
+                    WHERE t.control_id = c.id
+                        AND t.deadline_time::DATE >= quarter_start
+                        AND t.deadline_time::DATE <= quarter_end
+                        AND t.status IN ('NOT_STARTED', 'IN_POGRESS')
+                );
+
+            GET DIAGNOSTICS new_tasks_count = ROW_COUNT;
+            RETURN new_tasks_count;
+        END;
+        $$;
+
+alter function generate_quarterly_tasks() owner to kanysh;
+

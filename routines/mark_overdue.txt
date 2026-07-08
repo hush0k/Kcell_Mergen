@@ -1,0 +1,19 @@
+create function mark_overdue_tasks() returns integer
+    language plpgsql
+as
+$$
+DECLARE
+    updated_count INTEGER;
+BEGIN
+    UPDATE kcell_web.task
+    SET status = 'OVERDUE'
+    WHERE status IN ('NOT_STARTED', 'IN_PROGRESS')
+      AND deadline_time < NOW();
+
+    GET DIAGNOSTICS updated_count = ROW_COUNT;
+    RETURN updated_count;
+END;
+$$;
+
+alter function mark_overdue_tasks() owner to kanysh;
+

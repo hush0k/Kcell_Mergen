@@ -1,0 +1,94 @@
+create function generate_daily_tasks() returns integer
+    language plpgsql
+as
+$$
+DECLARE
+    today_date DATE := CURRENT_DATE;
+    yesterday_date DATE := CURRENT_DATE - INTERVAL '1 day';
+    deadline_ts TIMESTAMP WITH TIME ZONE;
+    new_tasks_count INTEGER := 0;
+    task_record RECORD;
+    new_task_id INTEGER;
+    check_date DATE;
+    non_working_period DATE[];
+BEGIN
+    deadline_ts := (today_date || ' 23:59:59')::TIMESTAMP WITH TIME ZONE;
+
+    -- Создаём задачи для всех активных ежедневных контролей
+    FOR task_record IN
+        SELECT c.id AS control_id, u.is_og
+        FROM kcell_web.control c
+                 JOIN kcell_web.user u ON u.id = c.responsible_id
+        WHERE c.status = 'ACTIVE'
+          AND LOWER(TRIM(c.frequency::TEXT)) IN ('ежедневно', 'daily')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM kcell_web.task t
+            WHERE t.control_id = c.id
+              AND t.deadline_time::DATE = today_date
+              AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+        )
+        LOOP
+            -- Создаём задачу
+            INSERT INTO kcell_web.task (control_id, user_id, deadline_time, status)
+            VALUES (task_record.control_id, NULL, deadline_ts, 'NOT_STARTED')
+            RETURNING id INTO new_task_id;
+
+            new_tasks_count := new_tasks_count + 1;
+
+            -- Если ОГ — пропускаем логику группировки
+            IF task_record.is_og THEN
+                CONTINUE;
+            END IF;
+
+            -- Если сегодня выходной — пропускаем
+            IF EXISTS (
+                SELECT 1 FROM kcell_web.non_working_days
+                WHERE date = today_date
+            ) THEN
+                CONTINUE;
+            END IF;
+
+            -- Если вчера не был выходным — пропускаем
+            IF NOT EXISTS (
+                SELECT 1 FROM kcell_web.non_working_days
+                WHERE date = yesterday_date
+            ) THEN
+                CONTINUE;
+            END IF;
+
+            -- Собираем подряд идущие нерабочие дни назад
+            non_working_period := ARRAY[]::DATE[];
+            check_date := yesterday_date;
+
+            WHILE EXISTS (
+                SELECT 1 FROM kcell_web.non_working_days
+                WHERE date = check_date
+            ) LOOP
+                    non_working_period := non_working_period || check_date;
+                    check_date := check_date - INTERVAL '1 day';
+                END LOOP;
+
+            -- Если нашли нерабочий период — группируем
+            IF array_length(non_working_period, 1) > 0 THEN
+                -- Новой задаче ставим weekend_group_id = её собственный id
+                UPDATE kcell_web.task
+                SET weekend_group_id = new_task_id
+                WHERE id = new_task_id;
+
+                -- Задачам за нерабочий период тоже ставим
+                UPDATE kcell_web.task
+                SET weekend_group_id = new_task_id
+                WHERE control_id = task_record.control_id
+                  AND deadline_time::DATE = ANY(non_working_period)
+                  AND status IN ('NOT_STARTED', 'IN_PROGRESS');
+            END IF;
+
+        END LOOP;
+
+    RETURN new_tasks_count;
+END;
+$$;
+
+alter function generate_daily_tasks() owner to kanysh;
+

@@ -1,5 +1,5 @@
 export function MergenNoteMainPage() {
     return (
-        <div></div>
+        <div className={"bg-mg-surface m-0 p-0 h-full w-full"}>MERGEN NOTE</div>
     )
 }

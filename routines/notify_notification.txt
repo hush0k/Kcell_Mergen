@@ -1,0 +1,15 @@
+create function notify_new_notification() returns trigger
+    language plpgsql
+as
+$$
+               BEGIN
+            PERFORM pg_notify(
+                'new_notification',
+                json_build_object('notification_id', NEW.id)::text
+            );
+               RETURN NEW;
+               END;
+        $$;
+
+alter function notify_new_notification() owner to kanysh;
+

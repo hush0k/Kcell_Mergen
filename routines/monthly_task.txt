@@ -1,0 +1,45 @@
+create function generate_monthly_tasks() returns integer
+    language plpgsql
+as
+$$
+        DECLARE
+            today_date DATE := CURRENT_DATE;
+            month_start DATE;
+            month_end DATE;
+            deadline_ts TIMESTAMP WITH TIME ZONE;
+            new_tasks_count INTEGER := 0;
+        BEGIN
+            -- Генерируем только 1-го числа
+            IF EXTRACT(DAY FROM today_date) != 1 THEN
+                RETURN 0;
+            END IF;
+
+            month_start := DATE_TRUNC('month', today_date)::DATE;
+            month_end := (DATE_TRUNC('month', today_date) + INTERVAL '1 month - 1 day')::DATE;
+            deadline_ts := (month_end || ' 23:59:59')::TIMESTAMP WITH TIME ZONE;
+
+            INSERT INTO kcell_web.task (control_id, user_id, deadline_time, status)
+            SELECT
+                c.id,
+                NULL,
+                deadline_ts,
+                'not_started'
+            FROM kcell_web.control c
+            WHERE c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('ежемесячно', 'monthly')
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM kcell_web.task t
+                    WHERE t.control_id = c.id
+                        AND t.deadline_time::DATE >= month_start
+                        AND t.deadline_time::DATE <= month_end
+                        AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                );
+
+            GET DIAGNOSTICS new_tasks_count = ROW_COUNT;
+            RETURN new_tasks_count;
+        END;
+        $$;
+
+alter function generate_monthly_tasks() owner to kanysh;
+

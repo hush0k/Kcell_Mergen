@@ -1,0 +1,18 @@
+create function notify_me_note_changed() returns trigger
+    language plpgsql
+as
+$$
+               BEGIN
+            PERFORM pg_notify(
+                'me_note_changed',
+                json_build_object(
+                    'note_id', COALESCE(NEW.id, OLD.id),
+                    'action', TG_OP
+                )::text
+            );
+               RETURN COALESCE(NEW, OLD);
+               END;
+        $$;
+
+alter function notify_me_note_changed() owner to kanysh;
+

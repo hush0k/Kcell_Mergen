@@ -1,0 +1,22 @@
+create function reassign_tasks_for_vacation() returns void
+    language plpgsql
+as
+$$
+               BEGIN
+               UPDATE kcell_web.control
+               SET responsible_id = CASE
+                                        WHEN EXISTS (
+                                            SELECT 1 FROM kcell_web.vacation_schedule v
+                                            WHERE v.user_id = original_user_id
+                                              AND v.status = 'ACTIVE'
+                                              AND v.start_date <= CURRENT_DATE
+                                              AND v.end_date >= CURRENT_DATE
+                                        ) THEN backup_id
+                                        ELSE original_user_id
+                   END
+               WHERE backup_id IS NOT NULL;
+               END;
+        $$;
+
+alter function reassign_tasks_for_vacation() owner to kanysh;
+

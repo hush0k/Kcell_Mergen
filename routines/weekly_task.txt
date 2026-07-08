@@ -1,0 +1,45 @@
+create function generate_weekly_tasks() returns integer
+    language plpgsql
+as
+$$
+        DECLARE
+            today_date DATE := CURRENT_DATE;
+            week_start DATE;
+            week_end DATE;
+            deadline_ts TIMESTAMP WITH TIME ZONE;
+            new_tasks_count INTEGER := 0;
+        BEGIN
+            -- Генерируем только по понедельникам
+            IF EXTRACT(DOW FROM today_date) != 1 THEN
+                RETURN 0;
+            END IF;
+
+            week_start := today_date;
+            week_end := today_date + INTERVAL '6 days';
+            deadline_ts := (week_end || ' 23:59:59')::TIMESTAMP WITH TIME ZONE;
+
+            INSERT INTO kcell_web.task (control_id, user_id, deadline_time, status)
+            SELECT
+                c.id,
+                NULL,
+                deadline_ts,
+                'NOT_STARTED'
+            FROM kcell_web.control c
+            WHERE c.status = 'ACTIVE'
+                AND LOWER(TRIM(c.frequency)) IN ('еженедельно', 'weekly')
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM kcell_web.task t
+                    WHERE t.control_id = c.id
+                        AND t.deadline_time::DATE >= week_start
+                        AND t.deadline_time::DATE <= week_end
+                        AND t.status IN ('NOT_STARTED', 'IN_PROGRESS')
+                );
+
+            GET DIAGNOSTICS new_tasks_count = ROW_COUNT;
+            RETURN new_tasks_count;
+        END;
+        $$;
+
+alter function generate_weekly_tasks() owner to kanysh;
+

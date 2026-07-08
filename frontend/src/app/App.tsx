@@ -26,7 +26,10 @@ export function App() {
                     <Route path="/vacation" element={<VacationPage />} />
                     <Route path="/controllers" element={<ControllerPage />} />
                 </Route>
-
+                <Route
+                    path="/mergen-note"
+                    element={<PrivateRoute><MergenNoteMainPage /></PrivateRoute>}
+                />
                 <Route path="/" element={<Navigate to="/home" replace />} />
 
             </Routes>
