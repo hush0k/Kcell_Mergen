@@ -27,7 +27,10 @@ class MfsAuditLogRepository:
         limit: int = 200,
     ) -> list[MfsAuditLog]:
         mfs_audit_logs = await self.db.execute(
-            select(MfsAuditLog).offset(offset).limit(limit)
+            select(MfsAuditLog)
+            .order_by(MfsAuditLog.created_at.desc())
+            .offset(offset)
+            .limit(limit)
         )
         return list(mfs_audit_logs.scalars().all())
 
@@ -37,6 +40,7 @@ class MfsAuditLogRepository:
         mfs_audit_logs = await self.db.execute(
             select(MfsAuditLog)
             .where(MfsAuditLog.user_id == user_id)
+            .order_by(MfsAuditLog.created_at.desc())
             .offset(offset)
             .limit(limit)
         )
