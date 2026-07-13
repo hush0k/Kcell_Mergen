@@ -64,6 +64,56 @@
   font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   background: var(--mg-bg);
   color: var(--mg-text);
+
+
+    /* NT токены (из внешней темы, добавлены поверх Mergen) */
+    --nt-surface: #fcf9f8;
+    --nt-surface-dim: #dcd9d9;
+    --nt-surface-bright: #fcf9f8;
+    --nt-surface-container-lowest: #ffffff;
+    --nt-surface-container-low: #f6f3f2;
+    --nt-surface-container: #f0eded;
+    --nt-surface-container-high: #eae7e7;
+    --nt-surface-container-highest: #e5e2e1;
+    --nt-on-surface: #1c1b1b;
+    --nt-on-surface-variant: #4e4350;
+    --nt-inverse-surface: #313030;
+    --nt-inverse-on-surface: #f3f0ef;
+    --nt-outline: #807381;
+    --nt-outline-variant: #d1c2d1;
+    --nt-surface-tint: #893ca4;
+    --nt-primary: #600f7d;
+    --nt-on-primary: #ffffff;
+    --nt-primary-container: #7a2e96;
+    --nt-on-primary-container: #edaeff;
+    --nt-inverse-primary: #eeb1ff;
+    --nt-secondary: #496800;
+    --nt-on-secondary: #ffffff;
+    --nt-secondary-container: #bef05f;
+    --nt-on-secondary-container: #4c6c00;
+    --nt-tertiary: #6c5e10;
+    --nt-on-tertiary: #ffffff;
+    --nt-tertiary-container: #bdab57;
+    --nt-on-tertiary-container: #4a3f00;
+    --nt-error: #ba1a1a;
+    --nt-on-error: #ffffff;
+    --nt-error-container: #ffdad6;
+    --nt-on-error-container: #93000a;
+    --nt-primary-fixed: #f9d8ff;
+    --nt-primary-fixed-dim: #eeb1ff;
+    --nt-on-primary-fixed: #330045;
+    --nt-on-primary-fixed-variant: #6e218a;
+    --nt-secondary-fixed: #d9f89f;
+    --nt-secondary-fixed-dim: #a5d648;
+    --nt-on-secondary-fixed: #131f00;
+    --nt-on-secondary-fixed-variant: #364e00;
+    --nt-tertiary-fixed: #f7e388;
+    --nt-tertiary-fixed-dim: #dac76f;
+    --nt-on-tertiary-fixed: #211b00;
+    --nt-on-tertiary-fixed-variant: #524600;
+    --nt-background: #fcf9f8;
+    --nt-on-background: #1c1b1b;
+    --nt-surface-variant: #e5e2e1;
 }
 
 /* Для тёмной темы добавь data-theme="dark" на html/body/root, когда появится переключатель. */
@@ -104,6 +154,55 @@
     --mg-in-process-tx: #aac2de;
     --mg-not-started-tx: #a080e0;
     --mg-overdue-tx: #eabbbc;
+
+    /* NT токены — тёмная тема (M3 dark scheme) */
+    --nt-surface: #141313;
+    --nt-surface-dim: #141313;
+    --nt-surface-bright: #3a383a;
+    --nt-surface-container-lowest: #0f0e0e;
+    --nt-surface-container-low: #1c1b1b;
+    --nt-surface-container: #201f1f;
+    --nt-surface-container-high: #2a2929;
+    --nt-surface-container-highest: #353334;
+    --nt-on-surface: #e5e2e1;
+    --nt-on-surface-variant: #d1c2d1;
+    --nt-inverse-surface: #e5e2e1;
+    --nt-inverse-on-surface: #313030;
+    --nt-outline: #9a8d9a;
+    --nt-outline-variant: #4e4350;
+    --nt-surface-tint: #eeb1ff;
+    --nt-primary: #eeb1ff;
+    --nt-on-primary: #4a0064;
+    --nt-primary-container: #7a2e96;
+    --nt-on-primary-container: #f9d8ff;
+    --nt-inverse-primary: #600f7d;
+    --nt-secondary: #a5d648;
+    --nt-on-secondary: #1f3300;
+    --nt-secondary-container: #364e00;
+    --nt-on-secondary-container: #c0f362;
+    --nt-tertiary: #dac76f;
+    --nt-on-tertiary: #392f00;
+    --nt-tertiary-container: #524600;
+    --nt-on-tertiary-container: #f7e388;
+    --nt-error: #ffb4ab;
+    --nt-on-error: #690005;
+    --nt-error-container: #93000a;
+    --nt-on-error-container: #ffdad6;
+    --nt-primary-fixed: #f9d8ff;
+    --nt-primary-fixed-dim: #eeb1ff;
+    --nt-on-primary-fixed: #330045;
+    --nt-on-primary-fixed-variant: #6e218a;
+    --nt-secondary-fixed: #c0f362;
+    --nt-secondary-fixed-dim: #a5d648;
+    --nt-on-secondary-fixed: #131f00;
+    --nt-on-secondary-fixed-variant: #364e00;
+    --nt-tertiary-fixed: #f7e388;
+    --nt-tertiary-fixed-dim: #dac76f;
+    --nt-on-tertiary-fixed: #211b00;
+    --nt-on-tertiary-fixed-variant: #524600;
+    --nt-background: #141313;
+    --nt-on-background: #e5e2e1;
+    --nt-surface-variant: #4e4350;
 
   --mg-shadow: rgba(0, 0, 0, 0.45);
   --mg-shadow-lg: rgba(0, 0, 0, 0.6);

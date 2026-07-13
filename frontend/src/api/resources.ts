@@ -2,25 +2,35 @@ import { apiRequest } from "@/api/client";
 import { apiEndpoints } from "@/api/endpoints";
 import { tokenStorage } from "@/api/token-storage";
 import type {
-  ApiRecord,
-  CurrentUser,
-  Id,
-  LoginRequest,
-  Task,
-  TokenResponse,
-  User,
+    ApiRecord,
+    CurrentUser,
+    Id,
+    LoginRequest,
+    Task,
+    TokenResponse,
+    User,
     ControlResponse,
     ControlCreate,
     Frequency,
     ControlStatus,
     ControlUpdate,
     ControlList,
-  TaskListWithControls,
-  TaskWithControl,
-  TaskGenerationResults,
+    TaskListWithControls,
+    TaskWithControl,
+    TaskGenerationResults,
     NotificationRecipient,
-  NotificationsList,
-  UnreadCountResponse,
+    NotificationsList,
+    UnreadCountResponse,
+    MeNoteResponse,
+    MeNoteWithAll,
+    MeNoteCreate,
+    MeNoteUpdate,
+    MeNoteListResponse,
+    DirectoryResponse,
+    DirectoryCreate,
+    DirectoryUpdate,
+    DirectoryListResponse,
+    DirectoryWithFilesResponse
 } from "@/types/api";
 import type {
   VacationScheduleCreate,
@@ -232,4 +242,69 @@ export const api = {
         body: payload,
       }),
   },
+    meNote: {
+        list: (
+            params?: { page?: number; per_page?: number },
+            opts?: { signal?: AbortSignal },
+        ) => {
+            const searchParams = new URLSearchParams();
+            searchParams.set("page", String(params?.page ?? 1));
+            searchParams.set("per_page", String(params?.per_page ?? 20));
+
+            return apiRequest<MeNoteListResponse>(
+                `${apiEndpoints.meNote.root}?${searchParams.toString()}`,
+                { signal: opts?.signal },
+            );
+        },
+        get: (id: Id, opts?: { signal?: AbortSignal }) =>
+            apiRequest<MeNoteWithAll>(apiEndpoints.meNote.byId(id), { signal: opts?.signal }),
+        create: (payload: MeNoteCreate) =>
+            apiRequest<MeNoteResponse>(apiEndpoints.meNote.root, {
+                method: "POST",
+                body: payload,
+            }),
+        update: (id: Id, payload: MeNoteUpdate) =>
+            apiRequest<MeNoteResponse>(apiEndpoints.meNote.byId(id), {
+                method: "PATCH",
+                body: payload,
+            }),
+        deleteMany: (ids: number[]) =>
+            apiRequest<null>(
+                `${apiEndpoints.meNote.root}?${ids.map(id => `note_ids=${id}`).join('&')}`,
+                { method: "DELETE" }
+            ),
+        startEdit: (id: Id) =>
+            apiRequest<null>(apiEndpoints.meNote.startEdit(id), { method: "PATCH" }),
+    },
+    directory: {
+        list: (
+            params?: { page?: number; per_page?: number },
+            opts?: { signal?: AbortSignal },
+        ) => {
+            const searchParams = new URLSearchParams();
+            searchParams.set("page", String(params?.page ?? 1));
+            searchParams.set("per_page", String(params?.per_page ?? 20));
+
+            return apiRequest<DirectoryListResponse>(
+                `${apiEndpoints.directory.root}?${searchParams.toString()}`,
+                { signal: opts?.signal },
+            );
+        },
+        get: (id: Id, opts?: { signal?: AbortSignal }) =>
+            apiRequest<DirectoryResponse>(apiEndpoints.directory.byId(id), { signal: opts?.signal }),
+        create: (payload: DirectoryCreate) =>
+            apiRequest<DirectoryResponse>(apiEndpoints.directory.root, {
+                method: "POST",
+                body: payload,
+            }),
+        update: (id: Id, payload: DirectoryUpdate) =>
+            apiRequest<DirectoryResponse>(apiEndpoints.directory.byId(id), {
+                method: "PATCH",
+                body: payload,
+            }),
+        remove: (id: Id) =>
+            apiRequest<null>(apiEndpoints.directory.byId(id), { method: "DELETE" }),
+        getWithFiles: (id: Id, opts?: { signal?: AbortSignal }) =>
+            apiRequest<DirectoryWithFilesResponse>(apiEndpoints.directory.withFiles(id), { signal: opts?.signal }),
+    },
 };

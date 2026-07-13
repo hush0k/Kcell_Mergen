@@ -8,6 +8,8 @@ import { AiOutlinePlus } from "react-icons/ai";
 import { ControlTable, type ControlFilters } from "@/features/control/components/ControlTable";
 import { Modal } from "@/components/Modal"
 import { CreateControlPopup } from "@/features/control/components/CreateControlPopup"
+import type { CurrentUser } from "@/types/api"
+import { api } from "@/api/resources"
 
 
 export function ControllerPage() {
@@ -19,6 +21,11 @@ export function ControllerPage() {
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
+    const [me, setMe] = useState<CurrentUser | null>(null);
+
+    useEffect(() => {
+        api.auth.me().then(data => setMe(data));
+    }, []);
 
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -54,7 +61,7 @@ export function ControllerPage() {
                 <Button
                     icon={<AiOutlinePlus />}
                     text="Добавить"
-                    className="w-36 py-[0.55rem]"
+                    className={`w-36 py-[0.55rem] ${me?.role === "ADMIN" ? "visible" : "hidden"}`}
                     onClick={() => setIsCreateOpen(true)}
                 />
                 <Button

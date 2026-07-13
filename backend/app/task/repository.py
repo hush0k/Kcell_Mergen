@@ -15,6 +15,8 @@ from app.user.enums import UserRoles
 from app.user.model import User
 
 
+# ID: 13
+
 class TaskRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -42,7 +44,7 @@ class TaskRepository:
                 )
                 .joinedload(Control.responsible)
                 .load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
-                joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name),
+                joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
                 )
             .where(Task.id == task_id)
         )
@@ -77,7 +79,7 @@ class TaskRepository:
             )
             .joinedload(Control.responsible)
             .load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
-            joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name),
+            joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
         ]
         base_order = [Task.created_at.desc(), Task.id.desc()]
 

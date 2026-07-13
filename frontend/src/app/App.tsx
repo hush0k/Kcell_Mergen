@@ -11,6 +11,7 @@ import { MergenNoteMainPage } from "@/pages/MergenNoteMainPage"
 import { PrivateRoute } from '@/components/PrivateRoute'
 import { Navigate } from 'react-router-dom'
 import { AppLayout } from "@/layouts/AppLayout"
+import { NoteLayout } from "@/layouts/NoteLayout"
 
 export function App() {
     return (
@@ -26,10 +27,11 @@ export function App() {
                     <Route path="/vacation" element={<VacationPage />} />
                     <Route path="/controllers" element={<ControllerPage />} />
                 </Route>
-                <Route
-                    path="/mergen-note"
-                    element={<PrivateRoute><MergenNoteMainPage /></PrivateRoute>}
-                />
+                <Route element={<PrivateRoute><NoteLayout /></PrivateRoute>}>
+                    <Route path="/mergen-note" element={<MergenNoteMainPage />} />
+                    <Route path="/workspace" element={<MergenNoteMainPage />} />
+                    <Route path="/graph" element={<MergenNoteMainPage />} />
+                </Route>
                 <Route path="/" element={<Navigate to="/home" replace />} />
 
             </Routes>

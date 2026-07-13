@@ -39,13 +39,13 @@ async def update_note(
 ) -> MeNote:
     return await service.update_note(note_id, note_in, current_user)
 
-@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_note(
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_notes(
         service: ServiceDep,
-        note_id: int,
+        note_ids: Annotated[list[int], Query()],
         _: CurrentUser,
 ) -> None:
-    return await service.delete_note(note_id)
+    return await service.delete_notes(note_ids)
 
 @router.get("/", response_model=MeNoteListResponse)
 async def list_notes(

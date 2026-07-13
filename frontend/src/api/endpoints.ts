@@ -56,4 +56,15 @@ export const apiEndpoints = {
       `/notifications/${id}/become_responsible_user`,
     websocket: "/notifications/ws",
   },
+    meNote: {
+        root: "/me-note/",
+        byId: (id: number) => `/me-note/${id}`,
+        startEdit: (id: number) => `/me-note/${id}/start-edit`,
+        websocket: "/me-note/ws",
+    },
+    directory: {
+        root: "/directory/",
+        byId: (id: number) => `/directory/${id}`,
+        withFiles: (id: number) => `/directory/${id}/with-files`,
+    },
 } as const;

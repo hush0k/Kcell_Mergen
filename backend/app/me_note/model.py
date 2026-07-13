@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Integer, String, Enum, ForeignKey, Boolean, Text, ARRAY
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.core.config import settings
@@ -17,7 +18,10 @@ class MeNote(Base, TimeStampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, default="Undefined")
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
-    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    directory_id: Mapped[int | None] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.directory.id", ondelete="SET NULL"), nullable=True
+    )
     creater_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
     )
@@ -29,8 +33,17 @@ class MeNote(Base, TimeStampMixin):
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
     )
 
+    creater: Mapped["User | None"] = relationship("User", foreign_keys=[creater_id])
+    last_modifier: Mapped["User | None"] = relationship("User", foreign_keys=[last_modifier_id])
+    editor: Mapped["User | None"] = relationship("User", foreign_keys=[editor_id])
+    directory: Mapped["Directory | None"] = relationship("Directory", back_populates="files")
 
-    creater: Mapped["User"] = relationship("User", foreign_keys=[creater_id])
-    last_modifier: Mapped["User"] = relationship("User", foreign_keys=[last_modifier_id])
-    editor: Mapped["User"] = relationship("User", foreign_keys=[editor_id])
 
+class Directory(Base, TimeStampMixin):
+    __tablename__ = "directory"
+    __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, default="Undefined")
+
+    files: Mapped[list["MeNote"]] = relationship(back_populates="directory")

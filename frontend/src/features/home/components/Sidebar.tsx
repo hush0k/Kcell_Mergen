@@ -49,7 +49,7 @@ export function Sidebar() {
                     icon={<PiNotePencilFill size={14}/>}
                     size={"md"}
                     variant={"outline"}
-                    className={"border-mg-purple text-mg-purple text-lg py-2"}
+                    className={"border-mg-purple border rounded-lg text-mg-purple text-lg py-2"}
                     onClick={ () => navigate("/mergen-note")}
                 />
             </div>

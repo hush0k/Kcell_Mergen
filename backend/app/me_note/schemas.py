@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 
@@ -9,12 +9,14 @@ NoteName = Annotated[str | None, Field(min_length=3)]
 
 class MeNoteBase(BaseModel):
     name: NoteName
-    content: str | None
+    content: dict[str, Any] | None
     tags: list[str] = []
+    directory_id: int | None
 
 
 class MeNoteCreate(MeNoteBase):
     name: NoteName
+    directory_id: int
 
 class MeNoteUpdate(BaseModel):
     name: NoteName = None

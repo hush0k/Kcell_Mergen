@@ -3,11 +3,13 @@ import json
 import logging
 
 import asyncpg
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.db.database import AsyncSessionLocal as async_session_maker
 from app.notification.connection_manager import manager
 from app.notification.repository import NotificationRepository
+from app.user.model import User
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +27,17 @@ async def handle_new_notification(notification_id: int) -> None:
         # Парсим emails из строки "email1@k.kz;email2@k.kz"
         emails = [e.strip() for e in notification.recipients_email.split(";") if e.strip()]
 
+
+
+        if "fcs@kcell.kz" in emails:
+            res = await db.execute(select(User.email).where(User.is_og.is_(True)))
+            emails.extend(res.scalars().all())
+            print(emails)
+            emails = list(set(emails))
+
         # Маппим emails → user_ids
         user_ids = await repo.get_user_ids_by_emails(emails)
+        print(user_ids)
 
         # Создаём записи в notification_recipient
         await repo.bulk_create_recipients_if_not_exists(notification_id, user_ids)

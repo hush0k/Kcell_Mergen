@@ -32,8 +32,9 @@ class MeNoteRepository:
         return note
 
 
-    async def delete(self, note: MeNote) -> None:
-        await self.db.delete(note)
+    async def delete_many(self, notes: list[MeNote]) -> None:
+        for note in notes:
+            await self.db.delete(note)
         await self.db.commit()
 
     async def list_notes(self, offset: int = 0, limit: int = 0) -> MeNoteListResponse:

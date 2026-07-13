@@ -10,6 +10,7 @@ import { VacationFilterBlock } from "@/features/vacation/components/VacationFilt
 import { VacationTable, type VacationFilters } from "@/features/vacation/components/VacationTable";
 import { CreateVacationPopup } from "@/features/vacation/components/CreateVacationPopup";
 import type { VacationScheduleWithUser } from "@/types/vacation";
+import type { CurrentUser, UserRole } from "@/types/api"
 
 export function VacationPage() {
     const [total, setTotal] = useState(0);
@@ -22,6 +23,11 @@ export function VacationPage() {
     const [editId, setEditId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<VacationScheduleWithUser | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [me, setMe] = useState<CurrentUser | null>(null);
+
+    useEffect(() => {
+        api.auth.me().then(data => setMe(data));
+    }, []);
 
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -80,7 +86,7 @@ export function VacationPage() {
                 <Button
                     icon={<AiOutlinePlus />}
                     text="Создать"
-                    className="w-36 py-[0.55rem]"
+                    className={`w-36 py-[0.55rem] ${me?.role === "ADMIN" ? "visible" : "hidden"}`}
                     onClick={() => setIsCreateOpen(true)}
                 />
                 <Button

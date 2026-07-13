@@ -12,6 +12,7 @@ from app.db.database import create_schema
 from app.incident.router import router as incident_router
 from app.me_note.listener import pg_notify_me_note_listener
 from app.me_note.router import router as me_note_router
+from app.me_note.directory_router import router as directory_router
 from app.mfs.router import router as mfs_router
 from app.notification.listener import pg_notify_listener
 from app.notification.router import router as notification_router
@@ -57,6 +58,7 @@ app.include_router(mfs_router)
 app.include_router(atlas_router)
 app.include_router(notification_router)
 app.include_router(me_note_router)
+app.include_router(directory_router)
 
 
 @app.get("/api/public/config")

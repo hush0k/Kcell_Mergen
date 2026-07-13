@@ -101,3 +101,7 @@ async def delete_vacation_schedule(
 ) -> None:
     await service.delete(vacation_id, current_user)
 
+
+@router.post("/trigger-reassign", status_code=http_status.HTTP_200_OK)
+async def trigger_reassign(service: ServiceDep, current_user: CurrentUser) -> dict:
+    return await service.trigger_reassign(current_user)

@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import HTTPException
 from fastapi import status as http_status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -192,3 +192,14 @@ class VacationScheduleService:
     #             )
     #         )
     #     ))
+
+    async def trigger_reassign(self, current_user: User) -> dict:
+        user = await self.user_repo.get_by_id(current_user.id)
+        if not user or user.role != UserRoles.ADMIN:
+            raise HTTPException(
+                status_code=http_status.HTTP_403_FORBIDDEN,
+                detail="Для совершение операции требуется права администратора",
+            )
+        await self.db.execute(text("SELECT kcell_web.reassign_tasks_for_vacation()"))
+        await self.db.commit()
+        return {"status": "ok"}

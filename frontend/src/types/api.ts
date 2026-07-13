@@ -1,5 +1,6 @@
 export type Id = number;
 export type IsoDateTime = string;
+import type { JSONContent } from '@tiptap/react';
 
 export type UserRole = "admin" | "user" | "ADMIN" | "USER" | string;
 export type TaskStatus =
@@ -254,3 +255,81 @@ export interface TaskClaimedEvent {
 }
 
 export type NotificationSocketMessage = NotificationPushEvent | TaskClaimedEvent;
+
+
+export interface MeNoteBase {
+    name: string | null;
+    content: JSONContent | null;
+    tags: string[];
+    directory_id: number;
+}
+
+export interface MeNoteCreate extends MeNoteBase {
+    name: string | null;
+}
+
+export interface MeNoteUpdate {
+    name?: string | null;
+    content?: JSONContent | null;
+    tags?: string[] | null;
+}
+
+export interface MeNoteResponse extends MeNoteBase {
+    id: number;
+    creater_id: number | null;
+    last_modifier_id: number | null;
+    editor_id: number | null;
+    is_editing: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MeNoteWithAll extends MeNoteBase {
+    id: number;
+    creater_id: number | null;
+    last_modifier_id: number | null;
+    editor_id: number | null;
+    creater: UserBrief | null;
+    is_editing: boolean;
+    last_modifier: UserBrief | null;
+    editor: UserBrief | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MeNoteListResponse {
+    list: MeNoteResponse[];
+    offset: number;
+    limit: number;
+    total: number;
+}
+
+export interface DirectoryBase {
+    name: string;
+}
+
+export interface DirectoryCreate extends DirectoryBase {}
+
+export interface DirectoryUpdate {
+    name?: string;
+}
+
+export interface DirectoryResponse extends DirectoryBase {
+    id: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DirectoryWithFilesResponse extends DirectoryBase {
+    id: number;
+    files: MeNoteResponse[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DirectoryListResponse {
+    list: DirectoryResponse[];
+    offset: number;
+    limit: number;
+    total: number;
+}

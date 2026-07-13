@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.me_note.model import MeNote
@@ -25,12 +26,14 @@ class MeNoteService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Заметка уже редактируется другим пользователем")
 
         return await self.repo.update(note, note_in, current_user)
-
-    async def delete_note(self, note_id: int) -> None:
-        note: MeNote | None = await self.repo.db.get(MeNote, note_id)
-        if not note:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
-        await self.repo.delete(note)
+    async def delete_notes(self, note_ids: list[int]) -> None:
+        result = await self.repo.db.execute(
+            select(MeNote).where(MeNote.id.in_(note_ids))
+        )
+        notes = result.scalars().all()
+        if len(notes) != len(set(note_ids)):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Некоторые заметки не найдены")
+        await self.repo.delete_many(notes)
 
     async def get_all_notes(self, page: int, limit: int) -> MeNoteListResponse:
         offset = (page - 1) * limit
