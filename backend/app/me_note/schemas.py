@@ -5,22 +5,21 @@ from pydantic import BaseModel, Field
 
 from app.user.schemas import UserBase
 
-NoteName = Annotated[str | None, Field(min_length=3)]
 
 class MeNoteBase(BaseModel):
-    name: NoteName
+    name: str | None = None
     content: dict[str, Any] | None
     tags: list[str] = []
     directory_id: int | None
 
 
 class MeNoteCreate(MeNoteBase):
-    name: NoteName
+    name: str | None = None
     directory_id: int
 
 class MeNoteUpdate(BaseModel):
-    name: NoteName = None
-    content: str | None = None
+    name: str | None = None
+    content: dict[str, Any] | None
     tags: list[str] | None = None
 
 class MeNoteResponse(MeNoteBase):

@@ -275,6 +275,8 @@ export const api = {
             ),
         startEdit: (id: Id) =>
             apiRequest<null>(apiEndpoints.meNote.startEdit(id), { method: "PATCH" }),
+        stopEdit: (id: Id) =>
+            apiRequest<null>( apiEndpoints.meNote.stopEdit(id), { method: "PATCH" }),
     },
     directory: {
         list: (

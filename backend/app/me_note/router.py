@@ -72,6 +72,13 @@ async def start_editing(
 ) -> None:
     await service.start_editing(note_id, current_user)
 
+@router.patch("/{note_id}/stop-edit", status_code=status.HTTP_204_NO_CONTENT)
+async def stop_editing(
+        service: ServiceDep,
+        note_id: int,
+        current_user: CurrentUser
+) -> None:
+    await service.stop_editing(note_id, current_user)
 
 @router.websocket("/ws")
 async def websocket_endpoint(

@@ -9,7 +9,7 @@ export function MergenNoteMainPage() {
     }
 
     return (
-        <div className={"bg-nt-surface m-0 p-0 h-screen w-full"}>
+        <div className={"bg-nt-surface m-0 p-0 h-screen w-full flex flex-col space-y-4 px-48 py-24"}>
             <EditMod noteId={selectedFileId} />
         </div>
     )

@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +8,8 @@ from app.me_note.model import MeNote
 from app.me_note.repository import MeNoteRepository
 from app.me_note.schemas import MeNoteCreate, MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
 from app.user.model import User
+
+LOCK_TTL_MINUTES=2
 
 
 class MeNoteService:
@@ -26,6 +30,7 @@ class MeNoteService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Заметка уже редактируется другим пользователем")
 
         return await self.repo.update(note, note_in, current_user)
+
     async def delete_notes(self, note_ids: list[int]) -> None:
         result = await self.repo.db.execute(
             select(MeNote).where(MeNote.id.in_(note_ids))
@@ -45,13 +50,21 @@ class MeNoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
         return note
 
+    async def stop_editing(self, note_id: int, current_user: User) -> None:
+        note = await self.repo.get_note(note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
+        await self.repo.stop_editing(note, current_user)
 
     async def start_editing(self, note_id: int, user: User) -> None:
         note: MeNote | None = await self.repo.db.get(MeNote, note_id)
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
-        if note.is_editing and note.editor_id != user.id:
+
+        lock_expired = note.updated_at < datetime.now(timezone.utc) - timedelta(minutes=LOCK_TTL_MINUTES)
+        if note.is_editing and note.editor_id != user.id and not lock_expired:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Заметка уже редактируется другим пользователем")
+
         await self.repo.start_editng(note, user)
 
 

@@ -24,8 +24,14 @@ class MeNoteRepository:
             setattr(note, key, value)
 
         note.last_modifier_id = current_user.id
-        note.editor_id = None
+
+        await self.db.commit()
+        await self.db.refresh(note)
+        return note
+
+    async def stop_editing(self, note: MeNoteWithAll, user: User) -> None:
         note.is_editing = False
+        note.editor_id = user.id
 
         await self.db.commit()
         await self.db.refresh(note)
@@ -39,7 +45,9 @@ class MeNoteRepository:
 
     async def list_notes(self, offset: int = 0, limit: int = 0) -> MeNoteListResponse:
         total = await self.db.scalar(select(func.count()).select_from(MeNote))
-        notes = await self.db.execute(select(MeNote).offset(offset).limit(limit))
+        notes = await self.db.execute(
+            select(MeNote).order_by(MeNote.updated_at.desc()).offset(offset).limit(limit)
+        )
         list_note = list(notes.scalars().all())
         return MeNoteListResponse(total=total, list=list_note, offset=offset, limit=limit)
 

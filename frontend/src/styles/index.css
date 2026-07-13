@@ -589,3 +589,189 @@
     font-weight: 600;
   }
 }
+
+/* === Tiptap / MeNote editor === */
+
+.ProseMirror {
+    white-space: pre-wrap;
+    outline: none;
+    color: var(--mg-text);
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.ProseMirror p {
+    margin: 0.4em 0;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--mg-text-3);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Заголовки */
+.ProseMirror h1 { font-size: 2rem; font-weight: 700; margin: 0.8em 0 0.4em; color: var(--mg-text); }
+.ProseMirror h2 { font-size: 1.5rem; font-weight: 700; margin: 0.7em 0 0.35em; color: var(--mg-text); }
+.ProseMirror h3 { font-size: 1.25rem; font-weight: 600; margin: 0.6em 0 0.3em; color: var(--mg-text); }
+.ProseMirror h4 { font-size: 1.1rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text); }
+.ProseMirror h5 { font-size: 1rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text-2); }
+.ProseMirror h6 { font-size: 0.9rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text-2); }
+
+/* Bold / italic / strike / underline */
+.ProseMirror strong { font-weight: 700; color: var(--mg-text); }
+.ProseMirror em { font-style: italic; }
+.ProseMirror s { color: var(--mg-text-3); }
+.ProseMirror u { text-decoration-color: var(--mg-purple); }
+
+/* Списки */
+.ProseMirror ul { list-style: disc; padding-left: 1.4em; margin: 0.4em 0; }
+.ProseMirror ol { list-style: decimal; padding-left: 1.4em; margin: 0.4em 0; }
+.ProseMirror li { margin: 0.15em 0; }
+.ProseMirror li p { margin: 0; }
+.ProseMirror li::marker { color: var(--mg-purple-2); }
+
+/* Task list (чекбоксы) */
+.ProseMirror ul[data-type="taskList"] li {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+    flex-shrink: 0;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+    flex-shrink: 0;
+    margin-top: 0.25em;
+    user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--mg-purple);
+    cursor: pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+    flex: 1;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+    text-decoration: line-through;
+    color: var(--mg-text-3);
+}
+
+/* Blockquote (если добавишь позже) */
+.ProseMirror blockquote {
+    border-left: 3px solid var(--mg-purple-2);
+    padding-left: 1em;
+    margin: 0.6em 0;
+    color: var(--mg-text-2);
+    font-style: italic;
+}
+
+/* Code / codeblock */
+.ProseMirror code {
+    background: var(--mg-surface-2);
+    border: 1px solid var(--mg-border);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.9em;
+    color: var(--mg-purple-deep);
+}
+
+.ProseMirror pre {
+    background: #1e1e2e;
+    border: 1px solid var(--mg-border);
+    border-radius: 8px;
+    padding: 0.8em 1em;
+    overflow-x: auto;
+    margin: 0.6em 0;
+}
+
+.ProseMirror pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #cdd6f4;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.85em;
+}
+
+.hljs-keyword, .hljs-built_in { color: #cba6f7; font-weight: 600; }
+.hljs-string { color: #a6e3a1; }
+.hljs-comment { color: #6c7086; font-style: italic; }
+.hljs-number { color: #fab387; }
+.hljs-title.function_, .hljs-title.class_ { color: #89b4fa; }
+.hljs-attr, .hljs-property { color: #f9e2af; }
+.hljs-variable { color: #f38ba8; }
+
+/* Horizontal rule */
+.ProseMirror hr {
+    border: none;
+    border-top: 1px solid var(--mg-border);
+    margin: 1em 0;
+}
+
+/* Ссылки (если добавишь Link extension) */
+.ProseMirror a {
+    color: var(--mg-purple);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.ProseMirror table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.6em 0;
+    overflow: hidden;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+    border: 1px solid var(--mg-border);
+    padding: 0.5em 0.7em;
+    text-align: left;
+    vertical-align: top;
+    position: relative;
+}
+
+.ProseMirror th {
+    background: var(--mg-surface-2);
+    font-weight: 600;
+    color: var(--mg-text-2);
+}
+
+.ProseMirror .selectedCell {
+    background: var(--mg-purple-soft);
+}
+
+.ProseMirror .column-resize-handle {
+    background-color: var(--mg-purple);
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+    cursor: col-resize;
+}
+
+.ProseMirror mark {
+    background: var(--mg-lime-soft);
+    color: var(--mg-text);
+    padding: 0.05em 0.1em;
+    border-radius: 3px;
+}

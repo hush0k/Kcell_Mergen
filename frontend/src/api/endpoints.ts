@@ -60,6 +60,7 @@ export const apiEndpoints = {
         root: "/me-note/",
         byId: (id: number) => `/me-note/${id}`,
         startEdit: (id: number) => `/me-note/${id}/start-edit`,
+        stopEdit: (id: number) => `/me-note/${id}/stop-edit`,
         websocket: "/me-note/ws",
     },
     directory: {
