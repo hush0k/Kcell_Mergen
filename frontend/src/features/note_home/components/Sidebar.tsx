@@ -15,6 +15,7 @@ import { RiFunctionAddFill } from "react-icons/ri";
 import { RiEdit2Fill } from "react-icons/ri";
 import { TbCircleLetterMFilled } from "react-icons/tb";
 import { useNoteSelection } from "@/contexts/NoteSelectionContext";
+import { meNoteSocket } from "@/api/me-note-ws-client";
 
 
 const pages = [
@@ -39,7 +40,7 @@ export function Sidebar() {
         }
     });
     const [selectedFolder, setSelectedFolder] = useState<DirectoryWithFilesResponse | null>(null);
-    const { selectedFileId, setSelectedFileId } = useNoteSelection();
+    const { selectedFileId, setSelectedFileId, refreshKey } = useNoteSelection();
     const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
 
     const fetchFolders = () => {
@@ -95,6 +96,21 @@ export function Sidebar() {
             if (!cancelled) console.error(err);
         });
         return () => { cancelled = true; };
+    }, [selectedFolderId]);
+
+    useEffect(() => {
+        if (selectedFolderId != null) {
+            fetchSelectedFolder(selectedFolderId);
+        }
+    }, [refreshKey]);
+
+    useEffect(() => {
+        meNoteSocket.connect();
+        return meNoteSocket.subscribe(() => {
+            if (selectedFolderId != null) {
+                fetchSelectedFolder(selectedFolderId);
+            }
+        });
     }, [selectedFolderId]);
 
     useEffect(() => {
@@ -203,12 +219,6 @@ export function Sidebar() {
                         className={"w-auto rounded-none"}
                         size={"sm"}
                         onClick={() => navigate("/home")}
-                    />
-                    <Button
-                        icon={<RiEdit2Fill />}
-                        text={"Редактировать"}
-                        className={"w-auto rounded-none bg-mg-lime"}
-                        size={"sm"}
                     />
                 </div>
             </div>

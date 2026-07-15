@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from app.me_note.schemas import MeNoteResponse
+from app.me_note.note.schemas import MeNoteResponse
 
 DirectoryName = Annotated[str, Field(min_length=3)]
 

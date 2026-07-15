@@ -2,8 +2,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.me_note.model import Directory, MeNote
-from app.me_note.directory_schemas import DirectoryUpdate, DirectoryListResponse
+from app.me_note.note.model import Directory, MeNote
+from app.me_note.directory.directory_schemas import DirectoryUpdate, DirectoryListResponse
 
 
 class DirectoryRepository:
@@ -35,7 +35,7 @@ class DirectoryRepository:
     async def get_by_id(self, directory_id: int) -> Directory:
         result = await self.db.execute(
             select(Directory)
-            .options(joinedload(Directory.files))
+            .options(joinedload(Directory.files).joinedload(MeNote.tags))
             .where(Directory.id == directory_id)
         )
         return result.unique().scalar_one_or_none()

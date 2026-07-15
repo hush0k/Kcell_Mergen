@@ -10,9 +10,10 @@ from app.auth.router import router as auth_router
 from app.control.router import router as control_router
 from app.db.database import create_schema
 from app.incident.router import router as incident_router
-from app.me_note.listener import pg_notify_me_note_listener
-from app.me_note.router import router as me_note_router
-from app.me_note.directory_router import router as directory_router
+from app.me_note.note.listener import pg_notify_me_note_listener
+from app.me_note.note.ttl_sweeper import me_note_ttl_sweeper
+from app.me_note.note.router import router as me_note_router
+from app.me_note.directory.directory_router import router as directory_router
 from app.mfs.router import router as mfs_router
 from app.notification.listener import pg_notify_listener
 from app.notification.router import router as notification_router
@@ -32,6 +33,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     try:
         tasks.append(asyncio.create_task(pg_notify_listener()))
         tasks.append(asyncio.create_task(pg_notify_me_note_listener()))
+        tasks.append(asyncio.create_task(me_note_ttl_sweeper()))
     except Exception as e:
         logger.error(f"LISTENER START ERROR: {e}")
 

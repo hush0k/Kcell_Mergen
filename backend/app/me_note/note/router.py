@@ -2,13 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.me_note.connection_manager import manager as ws_manager
+from app.me_note.note.connection_manager import manager as ws_manager
 
 from app.auth.dependencies import get_current_user, get_current_user_by_token
 from app.db.database import get_db
-from app.me_note.model import MeNote
-from app.me_note.schemas import MeNoteResponse, MeNoteCreate, MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
-from app.me_note.service import MeNoteService
+from app.me_note.note.model import MeNote
+from app.me_note.note.schemas import MeNoteResponse, MeNoteCreate, MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
+from app.me_note.note.service import MeNoteService
 from app.user.model import User
 
 router = APIRouter(prefix="/api/v1/me-note", tags=["MeNote"])
@@ -39,7 +39,7 @@ async def update_note(
 ) -> MeNote:
     return await service.update_note(note_id, note_in, current_user)
 
-@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_notes(
         service: ServiceDep,
         note_ids: Annotated[list[int], Query()],

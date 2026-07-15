@@ -179,13 +179,13 @@ export function FilterBlock({ filterOn, onFilterChange }: FilterProps) {
                     <div className="flex flex-row flex-wrap gap-x-12 gap-y-6">
                         <div className="flex flex-col space-y-2 ">
                             <label
-                                htmlFor="user_id"
+                                htmlFor="responsible_id"
                                 className="text-mg-text-2 font-semibold"
                             >Исполнитель</label>
                             <select
-                                id="user_id"
-                                value={userId}
-                                onChange={(e) => handleUserChange(e.target.value)}
+                                id="responsible_id"
+                                value={responsible}
+                                onChange={(e) => handleResponsibleChange(e.target.value)}
                                 className="bg-mg-surface text-sm rounded-xl border px-2 py-1.5 outline-none"
                             >
                                 <option value="">Выберите...</option>

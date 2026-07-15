@@ -1,27 +1,31 @@
-from datetime import datetime, timedelta, timezone
-
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.me_note.model import MeNote
-from app.me_note.repository import MeNoteRepository
-from app.me_note.schemas import MeNoteCreate, MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
+from app.me_note.note.model import MeNote
+from app.me_note.note.repository import MeNoteRepository
+from app.me_note.note.schemas import MeNoteCreate, MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
+from app.me_note.tags.repository import TagsRepository
+from app.me_note.tags.service import TagService
 from app.user.model import User
-
-LOCK_TTL_MINUTES=2
 
 
 class MeNoteService:
     def __init__(self, db: AsyncSession):
         self.repo = MeNoteRepository(db)
+        self.tags_service = TagService(TagsRepository(db))
 
     async def create_note(self, note_in: MeNoteCreate, creater_id: int) -> MeNote:
-        new_note = MeNote(**note_in.model_dump(), creater_id=creater_id)
+        tags = await self.tags_service.get_or_create(names=note_in.tags)
+        new_note = MeNote(
+            **note_in.model_dump(exclude={"tags"}),
+            creater_id=creater_id,
+            tags=tags,
+        )
         return await self.repo.create(new_note)
 
     async def update_note(self, note_id: int, note_in: MeNoteUpdate, current_user: User) -> MeNote:
-        note: MeNote | None = await self.repo.db.get(MeNote, note_id)
+        note: MeNote | None = await self.repo.get_by_id(note_id)
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
         if not note.is_editing:
@@ -29,7 +33,8 @@ class MeNoteService:
         if note.is_editing and note.editor_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Заметка уже редактируется другим пользователем")
 
-        return await self.repo.update(note, note_in, current_user)
+        tags = await self.tags_service.get_or_create(note_in.tags) if note_in.tags is not None else None
+        return await self.repo.update(note, note_in, current_user, tags)
 
     async def delete_notes(self, note_ids: list[int]) -> None:
         result = await self.repo.db.execute(
@@ -57,12 +62,11 @@ class MeNoteService:
         await self.repo.stop_editing(note, current_user)
 
     async def start_editing(self, note_id: int, user: User) -> None:
-        note: MeNote | None = await self.repo.db.get(MeNote, note_id)
+        note: MeNote | None = await self.repo.get_by_id(note_id)
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
 
-        lock_expired = note.updated_at < datetime.now(timezone.utc) - timedelta(minutes=LOCK_TTL_MINUTES)
-        if note.is_editing and note.editor_id != user.id and not lock_expired:
+        if note.is_editing and note.editor_id != user.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Заметка уже редактируется другим пользователем")
 
         await self.repo.start_editng(note, user)

@@ -613,12 +613,12 @@
 }
 
 /* Заголовки */
-.ProseMirror h1 { font-size: 2rem; font-weight: 700; margin: 0.8em 0 0.4em; color: var(--mg-text); }
-.ProseMirror h2 { font-size: 1.5rem; font-weight: 700; margin: 0.7em 0 0.35em; color: var(--mg-text); }
-.ProseMirror h3 { font-size: 1.25rem; font-weight: 600; margin: 0.6em 0 0.3em; color: var(--mg-text); }
-.ProseMirror h4 { font-size: 1.1rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text); }
-.ProseMirror h5 { font-size: 1rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text-2); }
-.ProseMirror h6 { font-size: 0.9rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text-2); }
+.ProseMirror h1 { font-size: 2.75rem; font-weight: 700; margin: 0.8em 0 0.4em; color: var(--mg-text); }
+.ProseMirror h2 { font-size: 2.1rem; font-weight: 700; margin: 0.7em 0 0.35em; color: var(--mg-text); }
+.ProseMirror h3 { font-size: 1.75rem; font-weight: 600; margin: 0.6em 0 0.3em; color: var(--mg-text); }
+.ProseMirror h4 { font-size: 1.5rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text); }
+.ProseMirror h5 { font-size: 1.3rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text-2); }
+.ProseMirror h6 { font-size: 1.15rem; font-weight: 600; margin: 0.5em 0 0.25em; color: var(--mg-text-2); }
 
 /* Bold / italic / strike / underline */
 .ProseMirror strong { font-weight: 700; color: var(--mg-text); }

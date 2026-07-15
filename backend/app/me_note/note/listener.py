@@ -5,7 +5,7 @@ import logging
 import asyncpg
 
 from app.core.config import settings
-from app.me_note.connection_manager import manager
+from app.me_note.note.connection_manager import manager
 
 logger = logging.getLogger(__name__)
 

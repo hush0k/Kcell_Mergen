@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
-from app.me_note.model import Directory
-from app.me_note.directory_schemas import DirectoryResponse, DirectoryCreate, DirectoryUpdate, DirectoryListResponse, \
+from app.me_note.note.model import Directory
+from app.me_note.directory.directory_schemas import DirectoryResponse, DirectoryCreate, DirectoryUpdate, DirectoryListResponse, \
     DirectoryWithFilesResponse
-from app.me_note.directory_service import  DirectoryService
+from app.me_note.directory.directory_service import  DirectoryService
 from app.user.model import User
 
 router = APIRouter(prefix="/api/v1/directory", tags=["Directory"])

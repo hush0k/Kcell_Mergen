@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from app.me_note.connection_manager import MeNoteConnectionManager
+from app.me_note.note.connection_manager import MeNoteConnectionManager
 
 
 @pytest.mark.asyncio

@@ -25,7 +25,7 @@ async def handle_new_notification(notification_id: int) -> None:
             return
 
         # Парсим emails из строки "email1@k.kz;email2@k.kz"
-        emails = [e.strip() for e in notification.recipients_email.split(";") if e.strip()]
+        emails = [e.strip().lower() for e in notification.recipients_email.split(";") if e.strip()]
 
 
 

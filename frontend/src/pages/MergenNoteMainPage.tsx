@@ -1,16 +1,197 @@
-import { EditMod } from "@/features/note_home/components/EditMod";
+import { useEffect, useState } from "react";
 import { useNoteSelection } from "@/contexts/NoteSelectionContext";
+import { EditMod } from "@/features/note_home/components/EditMod";
+import type { NoteStats } from "@/features/note_home/components/EditMod";
+import { ViewMod } from "@/features/note_home/components/ViewMod";
+import { EmptyNoteState } from "@/features/note_home/components/EmptyNoteState";
+import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal";
+import { RiEdit2Fill, RiSaveLine } from "react-icons/ri";
+import { MdDeleteOutline } from "react-icons/md";
+import { api } from "@/api/resources";
+import { meNoteSocket } from "@/api/me-note-ws-client";
+import type { MeNoteWithAll, UserBrief } from "@/types/api";
+
+const LOCK_TTL_MS = 2 * 60 * 1000;
+
+function formatUserName(user: UserBrief): string {
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
+    return fullName || user.username;
+}
+
+function formatDateTime(value: string): string {
+    const date = new Date(value);
+    return date.toLocaleString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
 
 export function MergenNoteMainPage() {
-    const { selectedFileId } = useNoteSelection();
+    const { selectedFileId, setSelectedFileId, triggerRefresh } = useNoteSelection();
+    const [isEditing, setIsEditing] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [stats, setStats] = useState<NoteStats | null>(null);
+    const [note, setNote] = useState<MeNoteWithAll | null>(null);
+    const [lockedByOther, setLockedByOther] = useState(false);
 
-    if (!selectedFileId) {
-        return <div className="bg-nt-surface m-0 p-0 h-screen w-full flex items-center justify-center">Выберите файл</div>;
-    }
+    const handleDelete = async () => {
+        if (!selectedFileId) return;
+        setDeleting(true);
+        try {
+            await api.meNote.deleteMany([selectedFileId]);
+            setDeleteOpen(false);
+            setSelectedFileId(null);
+            triggerRefresh();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    useEffect(() => {
+        meNoteSocket.connect();
+        return () => meNoteSocket.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!selectedFileId) {
+            setNote(null);
+            setIsEditing(false);
+            setLockedByOther(false);
+            return;
+        }
+
+        const controller = new AbortController();
+        api.meNote.get(selectedFileId, { signal: controller.signal })
+            .then((data) => {
+                setNote(data);
+                setLockedByOther(data.is_editing);
+                setIsEditing(false);
+            })
+            .catch((err) => {
+                if (err.name !== "AbortError") console.error(err);
+            });
+
+        return () => controller.abort();
+    }, [selectedFileId]);
+
+    useEffect(() => {
+        if (!selectedFileId) return;
+
+        return meNoteSocket.subscribe((message) => {
+            if (message.note_id !== selectedFileId) return;
+
+            api.meNote.get(selectedFileId)
+                .then((data) => {
+                    setNote(data);
+                    setLockedByOther(data.is_editing);
+                })
+                .catch((err) => console.error(err));
+        });
+    }, [selectedFileId]);
+
+    useEffect(() => {
+        if (!lockedByOther || !note?.editing_started_at) return;
+
+        const startedAt = new Date(note.editing_started_at).getTime();
+        const remaining = startedAt + LOCK_TTL_MS - Date.now();
+
+        if (remaining <= 0) {
+            setLockedByOther(false);
+            return;
+        }
+
+        const timeout = setTimeout(() => setLockedByOther(false), remaining);
+        return () => clearTimeout(timeout);
+    }, [lockedByOther, note?.editing_started_at]);
 
     return (
-        <div className={"bg-nt-surface m-0 p-0 h-screen w-full flex flex-col space-y-4 px-48 py-24"}>
-            <EditMod noteId={selectedFileId} />
+        <div className={"bg-nt-surface m-0 p-0 h-screen w-full flex flex-col"}>
+            {selectedFileId && (
+                <div className="flex flex-row justify-end space-x-10 px-6 py-3 pb-10 shrink-0">
+                    <Button
+                        icon={isEditing ? <RiSaveLine /> : <RiEdit2Fill />}
+                        text={isEditing ? "Сохранить" : "Редактировать"}
+                        className="w-auto"
+                        disabled={!isEditing && lockedByOther}
+                        onClick={() => {
+                            if (!isEditing && lockedByOther) return;
+                            setIsEditing(!isEditing);
+                        }}
+                    />
+                    <Button
+                        icon={<MdDeleteOutline />}
+                        text="Удалить"
+                        variant="danger"
+                        className="w-auto"
+                        onClick={() => setDeleteOpen(true)}
+                    />
+                </div>
+            )}
+
+            <div className={selectedFileId ? "pl-36 pr-64 flex-1 min-h-0 pb-16" : "h-full"}>
+                {selectedFileId ? (
+                    isEditing ? (
+                        <EditMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
+                    ) : (
+                        <ViewMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
+                    )
+                ) : (
+                    <EmptyNoteState />
+                )}
+            </div>
+
+            {selectedFileId && stats && (
+                <div className="shrink-0 w-full flex justify-between items-center px-6 py-2.5 border-t border-mg-text-3 bg-nt-primary/10 text-sm font-medium text-mg-text">
+                    <span>
+                        {note?.last_modifier
+                            ? `Последнее изменение: ${formatUserName(note.last_modifier)} · ${formatDateTime(note.updated_at)}`
+                            : note
+                                ? `Создано: ${formatDateTime(note.created_at)}`
+                                : ""}
+                    </span>
+                    <span>{stats.words} слов · {stats.lines} строк · {stats.characters} символов</span>
+                </div>
+            )}
+
+
+            <Modal
+                isOpen={deleteOpen}
+                onClose={() => setDeleteOpen(false)}
+                className="w-[30rem] max-w-[90vw]"
+            >
+                <div className="p-8 space-y-5">
+                    <div className="space-y-2">
+                        <p className="text-xs font-semibold text-mg-text-3 uppercase">Удаление заметки</p>
+                        <h1 className="text-xl font-bold text-mg-text">Точно удалить?</h1>
+                    </div>
+                    <p className="text-sm text-mg-text-2">
+                        Файл будет удалён без возможности восстановления.
+                    </p>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button
+                            text="Отмена"
+                            variant="outline"
+                            className="w-32"
+                            onClick={() => setDeleteOpen(false)}
+                            disabled={deleting}
+                        />
+                        <Button
+                            text={deleting ? "Удаление..." : "Удалить"}
+                            variant="danger"
+                            className="w-32"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                        />
+                    </div>
+                </div>
+            </Modal>
         </div>
-    )
+    );
 }

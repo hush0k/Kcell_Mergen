@@ -10,6 +10,7 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/resources';
 import type { Id, MeNoteWithAll } from '@/types/api';
 import { Button } from "@/components/Button";
+import { useNoteSelection } from "@/contexts/NoteSelectionContext";
 import { FaListUl, FaListOl } from "react-icons/fa";
 import { VscTasklist } from "react-icons/vsc";
 import { HiCode } from "react-icons/hi";
@@ -21,20 +22,40 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import { Tags } from "@/features/note_home/components/Tags"
+
+export interface NoteStats {
+    words: number;
+    lines: number;
+    characters: number;
+}
 
 interface EditModProps {
     noteId: Id;
+    onStatsChange?: (stats: NoteStats) => void;
 }
+
+function computeStats(text: string): NoteStats {
+    const trimmed = text.trim();
+    return {
+        words: trimmed ? trimmed.split(/\s+/).length : 0,
+        lines: text ? text.split(/\n/).length : 0,
+        characters: text.length,
+    };
+}
+
+
 
 const ZOOM_LEVELS = [50, 75, 90, 100, 110, 125, 150, 175, 200];
 
-export function EditMod({ noteId }: EditModProps) {
+export function EditMod({ noteId, onStatsChange }: EditModProps) {
     const [note, setNote] = useState<MeNoteWithAll | null>(null);
     const [name, setName] = useState('');
     const [zoom, setZoom] = useState(100);
     const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lowlight = createLowlight(common);
+    const { triggerRefresh } = useNoteSelection();
 
     const editor = useEditor({
         extensions: [
@@ -53,6 +74,7 @@ export function EditMod({ noteId }: EditModProps) {
         ],
         content: '',
         onUpdate: ({ editor }) => {
+            onStatsChange?.(computeStats(editor.getText()));
             if (saveTimeout.current) clearTimeout(saveTimeout.current);
             saveTimeout.current = setTimeout(() => {
                 api.meNote.update(noteId, { content: editor.getJSON() });
@@ -95,19 +117,30 @@ export function EditMod({ noteId }: EditModProps) {
                 if (cancelled || !data) return;
                 setNote(data);
                 setName(data.name ?? '');
-                editor?.commands.setContent(data.content ?? '');
-                editor?.commands.focus('end');
             })
             .catch((err) => {
                 if (err.name !== 'AbortError') console.error(err);
             });
 
+        const heartbeat = setInterval(() => {
+            api.meNote.startEdit(noteId).catch(console.error);
+        }, 60_000);
+
         return () => {
             cancelled = true;
             controller.abort();
+            clearInterval(heartbeat);
             api.meNote.stopEdit(noteId).catch(console.error);
         };
-    }, [noteId, editor]);
+    }, [noteId]);
+
+    useEffect(() => {
+        if (!editor || !note) return;
+        editor.commands.setContent(note.content ?? '');
+        editor.commands.focus('end');
+        onStatsChange?.(computeStats(editor.getText()));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor, note?.id]);
 
     if (!editor || !note) return null;
 
@@ -115,7 +148,9 @@ export function EditMod({ noteId }: EditModProps) {
         setName(e.target.value);
         if (nameTimeout.current) clearTimeout(nameTimeout.current);
         nameTimeout.current = setTimeout(() => {
-            api.meNote.update(noteId, { name: e.target.value });
+            api.meNote.update(noteId, { name: e.target.value }).then(() => {
+                triggerRefresh();
+            });
         }, 800);
     };
 
@@ -196,7 +231,7 @@ export function EditMod({ noteId }: EditModProps) {
     return (
         <div className={"flex flex-col h-full"}>
             {/* === Toolbar === */}
-            <div className={"flex flex-row space-x-4 shrink-0 flex-wrap items-center border-b border-mg-text-3 px-6 py-3"}>
+            <div className={"flex flex-row space-x-4 shrink-0 flex-wrap items-center border-b border-mg-text-3 px-6 py-1"}>
                 <div className="flex flex-row space-x-2">
                     {buttonsType.map((button) => (
                         <Button
@@ -209,7 +244,7 @@ export function EditMod({ noteId }: EditModProps) {
                     ))}
                 </div>
 
-                <div className="w-0 h-full border-r border-mg-text-3"/>
+                <div className="w-0 self-stretch border-r border-mg-text-3"/>
 
                 <select
                     value={activeHeading}
@@ -231,7 +266,7 @@ export function EditMod({ noteId }: EditModProps) {
                     <option value="6">Heading 6</option>
                 </select>
 
-                <div className="w-0 h-full border-r border-mg-text-3"/>
+                <div className="w-0 self-stretch border-r border-mg-text-3"/>
 
                 <div className={"flex flex-row space-x-2"}>
                     {buttonsList.map((button) => (
@@ -245,7 +280,7 @@ export function EditMod({ noteId }: EditModProps) {
                     ))}
                 </div>
 
-                <div className="w-0 h-full border-r border-mg-text-3"/>
+                <div className="w-0 self-stretch border-r border-mg-text-3"/>
 
                 <div className={"flex flex-row space-x-2"}>
                     {buttonsOther.map((button) => (
@@ -261,7 +296,7 @@ export function EditMod({ noteId }: EditModProps) {
 
                 {editorState?.isTable && (
                     <>
-                        <div className="w-0 h-full border-r border-mg-text-3"/>
+                        <div className="w-0 self-stretch border-r border-mg-text-3"/>
                         <div className="flex flex-row space-x-1 px-2 py-1 bg-mg-purple-soft-2 rounded-lg">
                             {tableButtons.map((button) => (
                                 <Button
@@ -277,7 +312,7 @@ export function EditMod({ noteId }: EditModProps) {
                     </>
                 )}
 
-                <div className="w-0 h-full border-r border-mg-text-3"/>
+                <div className="w-0 self-stretch border-r border-mg-text-3"/>
 
                 <select value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
                     {ZOOM_LEVELS.map((level) => (
@@ -294,6 +329,11 @@ export function EditMod({ noteId }: EditModProps) {
                 rows={1}
                 className="text-5xl font-bold bg-transparent outline-none text-mg-text w-full resize-none px-6 pt-6 pb-10 min-h-[4.5rem]"
             />
+
+            <div className={"px-6"}>
+                <Tags note={note}/>
+            </div>
+
 
             {/* === Editor content === */}
             <div className={"flex-1 overflow-y-auto px-6"}>

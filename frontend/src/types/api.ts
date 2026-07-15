@@ -257,15 +257,20 @@ export interface TaskClaimedEvent {
 export type NotificationSocketMessage = NotificationPushEvent | TaskClaimedEvent;
 
 
+export interface TagResponse {
+    id: number;
+    name: string;
+}
+
 export interface MeNoteBase {
     name: string | null;
     content: JSONContent | null;
-    tags: string[];
     directory_id: number;
 }
 
 export interface MeNoteCreate extends MeNoteBase {
     name: string | null;
+    tags: string[];
 }
 
 export interface MeNoteUpdate {
@@ -279,7 +284,9 @@ export interface MeNoteResponse extends MeNoteBase {
     creater_id: number | null;
     last_modifier_id: number | null;
     editor_id: number | null;
+    tags: TagResponse[];
     is_editing: boolean;
+    editing_started_at: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -289,8 +296,10 @@ export interface MeNoteWithAll extends MeNoteBase {
     creater_id: number | null;
     last_modifier_id: number | null;
     editor_id: number | null;
+    tags: TagResponse[];
     creater: UserBrief | null;
     is_editing: boolean;
+    editing_started_at: string | null;
     last_modifier: UserBrief | null;
     editor: UserBrief | null;
     created_at: string;

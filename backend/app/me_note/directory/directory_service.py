@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.me_note.model import Directory
-from app.me_note.directory_repository import DirectoryRepository
-from app.me_note.directory_schemas import DirectoryCreate, DirectoryUpdate, DirectoryListResponse
+from app.me_note.note.model import Directory
+from app.me_note.directory.directory_repository import DirectoryRepository
+from app.me_note.directory.directory_schemas import DirectoryCreate, DirectoryUpdate, DirectoryListResponse
 
 
 class DirectoryService:
