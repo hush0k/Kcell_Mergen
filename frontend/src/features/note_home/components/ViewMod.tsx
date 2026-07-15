@@ -74,6 +74,13 @@ export function ViewMod({ noteId, onStatsChange }: ViewModProps) {
             <h1 className="text-5xl font-bold text-mg-text px-6 pt-6 pb-10">
                 {note.name || "Без названия"}
             </h1>
+            <div className={"px-6 flex flex-row flex-wrap gap-2 cursor-pointer select-none"}>
+                {note.tags.map(tag => (
+                    <div className={"px-2 py-1 w-auto border border-mg-border bg-mg-lime text-sm text-mg-surface font-semibold"} key={tag.id}>
+                        <p>{tag.name}</p>
+                    </div>
+                ))}
+            </div>
             <div className="flex-1 overflow-y-auto px-6">
                 <EditorContent editor={editor} />
             </div>
