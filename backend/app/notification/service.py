@@ -2,11 +2,13 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.functions import current_user
 
 from app.notification.connection_manager import manager
 from app.notification.model import Notification, NotificationRecipient
 from app.notification.repository import NotificationRepository
 from app.notification.schemas import NotificationRecipientResponse, UnreadCountResponse, NotificationCreate, NotificationsList
+from app.user.model import User
 
 
 class NotificationService:
@@ -82,9 +84,40 @@ class NotificationService:
                     "type": "User take task",
                     "notification_id": notification_id,
                     "user_id": user_id,
+                    "start_time": notification.start_time.isoformat(),
                 })
 
         return notification
+
+    async def end_notification(self, notification_id: int, current_user_this: User) -> Notification:
+        notification = await self.repo.get_notification_by_id(notification_id)
+        if not notification:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Уведомление не найдено")
+
+        if not notification.start_time:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Задача еще не начата")
+
+        if notification.responsible_user_id != current_user_this.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Вы не брали эту задачу")
+
+        if notification.end_time:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Задача уже завершена")
+
+        notification.end_time = datetime.now(timezone.utc)
+        notification = await self.repo.end_notification_task(notification)
+
+        recipient_ids = await self.repo.get_recipients_ids(notification_id)
+        for rid in recipient_ids:
+            if manager.is_online(rid):
+                await manager.send_to_user(rid, {
+                    "type": "Task ended",
+                    "notification_id": notification_id,
+                    "end_time": notification.end_time.isoformat(),
+                })
+
+        return notification
+
+
 
     async def create_notification(self, not_in: NotificationCreate) -> Notification:
         return await self.repo.create(not_in)

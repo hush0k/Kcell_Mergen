@@ -60,3 +60,25 @@ class MeNoteListResponse(BaseModel):
     offset: int
     limit: int
     total: int
+
+
+class MeNoteSearchResult(BaseModel):
+    id: int
+    name: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class MeNoteGraphNode(BaseModel):
+    id: int
+    name: str | None
+
+
+class MeNoteGraphEdge(BaseModel):
+    source: int
+    target: int
+
+
+class MeNoteGraphResponse(BaseModel):
+    nodes: list[MeNoteGraphNode]
+    edges: list[MeNoteGraphEdge]

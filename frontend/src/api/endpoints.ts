@@ -54,6 +54,8 @@ export const apiEndpoints = {
     read: (id: number) => `/notifications/${id}/read`,
     becomeResponsibleUser: (id: number) =>
       `/notifications/${id}/become_responsible_user`,
+    endNotificationTask: (id: number) =>
+      `/notifications/${id}/end_notificaiton_task`,
     websocket: "/notifications/ws",
   },
     meNote: {
@@ -61,6 +63,9 @@ export const apiEndpoints = {
         byId: (id: number) => `/me-note/${id}`,
         startEdit: (id: number) => `/me-note/${id}/start-edit`,
         stopEdit: (id: number) => `/me-note/${id}/stop-edit`,
+        search: "/me-note/search",
+        graph: "/me-note/graph",
+        backlinks: (id: number) => `/me-note/${id}/backlinks`,
         websocket: "/me-note/ws",
     },
     directory: {

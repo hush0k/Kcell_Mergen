@@ -23,6 +23,7 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Tags } from "@/features/note_home/components/Tags"
+import { Wikilink } from "@/features/note_home/components/WikilinkExtension"
 
 export interface NoteStats {
     words: number;
@@ -71,6 +72,7 @@ export function EditMod({ noteId, onStatsChange }: EditModProps) {
             Link.configure({ openOnClick: false, autolink: true }),
             Placeholder.configure({ placeholder: 'Напишите что-нибудь...' }),
             Highlight.configure({ multicolor: false }),
+            Wikilink,
         ],
         content: '',
         onUpdate: ({ editor }) => {

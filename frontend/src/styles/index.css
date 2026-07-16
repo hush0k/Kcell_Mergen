@@ -775,3 +775,40 @@
     padding: 0.05em 0.1em;
     border-radius: 3px;
 }
+
+.wikilink-suggestion-list {
+    background: var(--mg-surface);
+    border: 1px solid var(--mg-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(43, 36, 53, 0.16);
+    padding: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 220px;
+}
+
+.wikilink-suggestion-item {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--mg-text);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wikilink-suggestion-item:hover {
+    background: var(--mg-purple-soft-2);
+}
+
+.wikilink-suggestion-item.is-selected {
+    background: var(--mg-purple-soft);
+    color: var(--mg-purple-deep);
+}
+
+.wikilink-suggestion-empty {
+    padding: 6px 10px;
+    font-size: 0.875rem;
+    color: var(--mg-text-3);
+}

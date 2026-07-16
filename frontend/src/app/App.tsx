@@ -8,6 +8,7 @@ import { NotificaitonsPage } from "@/pages/NotificaitonsPage"
 import { ReportsPage } from "@/pages/ReportsPage"
 import { VacationPage } from "@/pages/VacationPage"
 import { MergenNoteMainPage } from "@/pages/MergenNoteMainPage"
+import { MeNoteGraphPage } from "@/pages/MeNoteGraphPage"
 import { PrivateRoute } from '@/components/PrivateRoute'
 import { Navigate } from 'react-router-dom'
 import { AppLayout } from "@/layouts/AppLayout"
@@ -30,7 +31,7 @@ export function App() {
                 <Route element={<PrivateRoute><NoteLayout /></PrivateRoute>}>
                     <Route path="/mergen-note" element={<MergenNoteMainPage />} />
                     <Route path="/workspace" element={<MergenNoteMainPage />} />
-                    <Route path="/graph" element={<MergenNoteMainPage />} />
+                    <Route path="/graph" element={<MeNoteGraphPage />} />
                 </Route>
                 <Route path="/" element={<Navigate to="/home" replace />} />
 

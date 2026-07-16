@@ -7,7 +7,15 @@ from app.me_note.note.connection_manager import manager as ws_manager
 from app.auth.dependencies import get_current_user, get_current_user_by_token
 from app.db.database import get_db
 from app.me_note.note.model import MeNote
-from app.me_note.note.schemas import MeNoteResponse, MeNoteCreate, MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
+from app.me_note.note.schemas import (
+    MeNoteResponse,
+    MeNoteCreate,
+    MeNoteUpdate,
+    MeNoteListResponse,
+    MeNoteWithAll,
+    MeNoteSearchResult,
+    MeNoteGraphResponse,
+)
 from app.me_note.note.service import MeNoteService
 from app.user.model import User
 
@@ -55,6 +63,30 @@ async def list_notes(
         per_page: int = 20,
 ) -> MeNoteListResponse:
     return await service.get_all_notes(page, per_page)
+
+@router.get("/search", response_model=list[MeNoteSearchResult])
+async def search_notes(
+        service: ServiceDep,
+        _: CurrentUser,
+        q: str = "",
+        limit: int = 10,
+) -> list[MeNoteSearchResult]:
+    return await service.search_notes(q, limit)
+
+@router.get("/graph", response_model=MeNoteGraphResponse)
+async def get_graph(
+        service: ServiceDep,
+        _: CurrentUser,
+) -> MeNoteGraphResponse:
+    return await service.get_graph()
+
+@router.get("/{note_id}/backlinks", response_model=list[MeNoteResponse])
+async def get_backlinks(
+        service: ServiceDep,
+        note_id: int,
+        _: CurrentUser,
+) -> list[MeNote]:
+    return await service.get_backlinks(note_id)
 
 @router.get("/{note_id}", response_model=MeNoteWithAll)
 async def get_note(

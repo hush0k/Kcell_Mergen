@@ -216,6 +216,8 @@ export interface NotificationResponse {
     created_at: IsoDateTime;
     preview: string;
     responsible_user: UserBrief | null;
+    start_time: IsoDateTime | null;
+    end_time: IsoDateTime | null;
 }
 
 export interface NotificationRecipient {
@@ -311,6 +313,26 @@ export interface MeNoteListResponse {
     offset: number;
     limit: number;
     total: number;
+}
+
+export interface MeNoteSearchResult {
+    id: number;
+    name: string | null;
+}
+
+export interface MeNoteGraphNode {
+    id: number;
+    name: string | null;
+}
+
+export interface MeNoteGraphEdge {
+    source: number;
+    target: number;
+}
+
+export interface MeNoteGraphResponse {
+    nodes: MeNoteGraphNode[];
+    edges: MeNoteGraphEdge[];
 }
 
 export interface DirectoryBase {

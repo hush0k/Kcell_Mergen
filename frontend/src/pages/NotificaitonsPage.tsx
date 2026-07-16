@@ -4,6 +4,8 @@ import { api } from "@/api/resources";
 import { useNotificationStore } from "@/features/notifications/store";
 import type { NotificationRecipient, CurrentUser } from "@/types/api";
 import { MdNotificationsActive } from "react-icons/md";
+import { FaCheck } from "react-icons/fa";
+import { diffMinutes, calculateTime, renderTime } from "@/features/home/hooks/CalulateTime";
 
 const formatDate = (iso: string) => {
     const date = new Date(iso);
@@ -96,7 +98,21 @@ export function NotificaitonsPage() {
             }
             await api.notifications.becomeResponsibleUser(id);
             setNotification(prev =>
-                prev ? { ...prev, notification: { ...prev.notification, responsible_user_id: me?.id ?? null } } : prev
+                prev ? { ...prev, notification: { ...prev.notification, responsible_user_id: me?.id ?? null, start_time: new Date().toISOString() } } : prev
+            );
+        } catch {
+            return;
+        }
+    };
+
+    const handleEndTask = async (id: number) => {
+        try {
+            if (notification?.notification.responsible_user_id !== me?.id || notification?.notification.end_time) {
+                return;
+            }
+            await api.notifications.endNotificationTask(id);
+            setNotification(prev =>
+                prev ? { ...prev, notification: { ...prev.notification, end_time: new Date().toISOString() } } : prev
             );
         } catch {
             return;
@@ -194,12 +210,56 @@ export function NotificaitonsPage() {
                                     </div>
                                     <p className={"text-mg-text-3"}>{formatDate(notification.notification.created_at)}</p>
                                 </div>
-                                <Button
-                                    text={"Взять в работу"}
-                                    size={"sm"}
-                                    className={"absolute top-5 right-8 w-auto h-auto"}
-                                    onClick={() => { void handleTakeResponsible(notification.notification.id); }}
-                                />
+
+                                <div className={"absolute left-96 top-16 flex flex-row items-center space-x-2"}>
+                                    {notification.notification.start_time ? (
+                                        <div className={"flex flex-row items-center space-x-2"}>
+                                            <div className={"py-0.5 px-3 w-auto bg-mg-in-process-bg text-mg-in-process-tx font-bold rounded-full"}>Начат</div>
+                                            <p>{notification.notification.start_time && new Date(notification.notification.start_time).toLocaleString('ru-RU', {
+                                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                            })}</p>
+                                        </div>
+                                    ) : null}
+                                    {notification.notification.end_time ? (
+                                        <div className={"flex flex-row items-center space-x-2"}>
+                                            <div className={"w-10 h-0 border border-mg-purple"}/>
+                                            <div className={"py-0.5 px-3 w-auto bg-mg-completed-bg text-mg-completed-tx font-bold rounded-full"}>Закончен</div>
+                                            <p>{notification.notification.start_time && new Date(notification.notification.start_time).toLocaleString('ru-RU', {
+                                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                            })}</p>
+                                        </div>
+                                    ) : null}
+                                </div>
+
+                                {notification.notification.end_time && notification.notification.start_time ? (
+                                    <div className={"absolute left-96 top-[5.76rem] flex flex-row items-center space-x-2"}>
+                                        <p>Потрачено времени: <span>{renderTime(calculateTime(diffMinutes(notification.notification.start_time, notification.notification.end_time)))}</span></p>
+                                    </div>
+                                ) : null}
+
+                                {notification.notification.end_time ? (
+                                    <Button
+                                        text={"Завершено"}
+                                        icon={<FaCheck />}
+                                        size={"sm"}
+                                        disabled
+                                        className={"absolute top-5 right-8 w-auto h-auto bg-transparent text-mg-success-fg hover:bg-transparent cursor-default"}
+                                    />
+                                ) : notification.notification.responsible_user_id ? (
+                                    <Button
+                                        text={"Закончить работу"}
+                                        size={"sm"}
+                                        className={"absolute top-5 right-8 w-auto h-auto bg-mg-purple text-white hover:bg-mg-purple"}
+                                        onClick={() => { void handleEndTask(notification.notification.id); }}
+                                    />
+                                ) : (
+                                    <Button
+                                        text={"Взять в работу"}
+                                        size={"sm"}
+                                        className={"absolute top-5 right-8 w-auto h-auto"}
+                                        onClick={() => { void handleTakeResponsible(notification.notification.id); }}
+                                    />
+                                )}
                                 <div
                                     className="h-[80%] border-t border-mg-border w-full overflow-auto p-4 [&_table]:max-w-full [&_table]:table-auto [&_img]:max-w-full [&_*]:!text-sm"
                                     dangerouslySetInnerHTML={{ __html: notification.notification.html_content }}

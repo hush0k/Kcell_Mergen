@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -122,6 +124,13 @@ class NotificationRepository:
 
     async def become_responsible_user(self, notification: Notification, user_id: int) -> Notification:
         notification.responsible_user_id = user_id
+        notification.start_time = datetime.now(timezone.utc)
+        await self.db.commit()
+        await self.db.refresh(notification)
+        return notification
+
+    async def end_notification_task(self, notification: Notification) -> Notification:
+        notification.end_time = datetime.now(timezone.utc)
         await self.db.commit()
         await self.db.refresh(notification)
         return notification

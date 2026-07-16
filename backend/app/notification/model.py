@@ -33,6 +33,8 @@ class Notification(Base, TimeStampMixin):
     title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     html_content: Mapped[str] = mapped_column(nullable=False)
     error_message: Mapped[str | None] = mapped_column(nullable=True)
+    start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     recipients: Mapped[list["NotificationRecipient"]] = relationship(
         "NotificationRecipient", back_populates="notification"

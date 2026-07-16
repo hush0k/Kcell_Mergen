@@ -48,6 +48,22 @@ class MeNote(Base, TimeStampMixin):
     editor: Mapped["User | None"] = relationship("User", foreign_keys=[editor_id])
     directory: Mapped["Directory | None"] = relationship("Directory", back_populates="files")
     tags: Mapped[list["Tags"]] = relationship(secondary=me_note_tags, back_populates="notes")
+    outgoing_links: Mapped[list["MeNoteLink"]] = relationship(
+        foreign_keys="[MeNoteLink.source_note_id]", cascade="all, delete-orphan"
+    )
+
+
+class MeNoteLink(Base):
+    __tablename__ = "me_note_link"
+    __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_note_id: Mapped[int] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.me_note.id", ondelete="CASCADE")
+    )
+    target_note_id: Mapped[int] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.me_note.id", ondelete="CASCADE")
+    )
 
 
 class Directory(Base, TimeStampMixin):

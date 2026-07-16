@@ -17,6 +17,8 @@ class NotificationResponse(BaseModel):
     html_content: str
     error_message: str | None
     created_at: datetime
+    start_time: datetime | None
+    end_time: datetime | None
 
     model_config = {"from_attributes": True}
 

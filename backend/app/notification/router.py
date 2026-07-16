@@ -73,6 +73,15 @@ async def become_responsible_user(
     return await service.become_responsible_user(notification_id, current_user.id)
 
 
+@router.patch("/{notification_id}/end_notificaiton_task", response_model=NotificationResponse)
+async def end_notification_task(
+        service: ServiceDep,
+        notification_id: int,
+        current_user: User = Depends(get_current_user),
+) -> Notification:
+    return await service.end_notification(notification_id, current_user)
+
+
 @router.post("/", response_model=NotificationResponse)
 async def create_notification_endpoint(
         service: ServiceDep,

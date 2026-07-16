@@ -60,6 +60,16 @@ export function MergenNoteMainPage() {
     }, []);
 
     useEffect(() => {
+        const handler = (e: Event) => {
+            const { noteId } = (e as CustomEvent<{ noteId: number }>).detail;
+            setIsEditing(false);
+            setSelectedFileId(noteId);
+        };
+        window.addEventListener('wikilink-navigate', handler);
+        return () => window.removeEventListener('wikilink-navigate', handler);
+    }, [setSelectedFileId]);
+
+    useEffect(() => {
         if (!selectedFileId) {
             setNote(null);
             setIsEditing(false);

@@ -26,6 +26,8 @@ import type {
     MeNoteCreate,
     MeNoteUpdate,
     MeNoteListResponse,
+    MeNoteSearchResult,
+    MeNoteGraphResponse,
     DirectoryResponse,
     DirectoryCreate,
     DirectoryUpdate,
@@ -236,6 +238,10 @@ export const api = {
       apiRequest<ApiRecord>(apiEndpoints.notifications.becomeResponsibleUser(id), {
         method: "PATCH",
       }),
+    endNotificationTask: (id: Id) =>
+      apiRequest<ApiRecord>(apiEndpoints.notifications.endNotificationTask(id), {
+        method: "PATCH",
+      }),
     create: (payload: ApiRecord) =>
       apiRequest<ApiRecord>(`${apiEndpoints.notifications.root}/`, {
         method: "POST",
@@ -277,6 +283,15 @@ export const api = {
             apiRequest<null>(apiEndpoints.meNote.startEdit(id), { method: "PATCH" }),
         stopEdit: (id: Id) =>
             apiRequest<null>( apiEndpoints.meNote.stopEdit(id), { method: "PATCH" }),
+        search: (q: string, limit = 10, opts?: { signal?: AbortSignal }) =>
+            apiRequest<MeNoteSearchResult[]>(
+                `${apiEndpoints.meNote.search}?q=${encodeURIComponent(q)}&limit=${limit}`,
+                { signal: opts?.signal },
+            ),
+        graph: (opts?: { signal?: AbortSignal }) =>
+            apiRequest<MeNoteGraphResponse>(apiEndpoints.meNote.graph, { signal: opts?.signal }),
+        backlinks: (id: Id, opts?: { signal?: AbortSignal }) =>
+            apiRequest<MeNoteResponse[]>(apiEndpoints.meNote.backlinks(id), { signal: opts?.signal }),
     },
     directory: {
         list: (

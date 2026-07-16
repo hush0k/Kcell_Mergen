@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.me_note.note.model import MeNote, Tags
+from app.me_note.note.model import MeNote, MeNoteLink, Tags
 from app.me_note.note.schemas import MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
 from app.user.model import User
 
@@ -12,6 +12,8 @@ LOCK_TTL_MINUTES = 2
 
 
 class MeNoteRepository:
+    cnt: int = 0
+
     def __init__(self, db: AsyncSession):
         self.db = db
 
@@ -37,6 +39,10 @@ class MeNoteRepository:
         return result.rowcount or 0
 
     async def create(self, note_in: MeNote) -> MeNote:
+        note_exists = await self.db.scalar(select(MeNote).where(MeNote.name == note_in.name))
+        if note_exists:
+            self.cnt += 1
+            note_in.name = str(note_in.name + f" ({self.cnt})")
         self.db.add(note_in)
         await self.db.commit()
         await self.db.refresh(note_in, attribute_names=["tags"])
@@ -120,4 +126,37 @@ class MeNoteRepository:
         if note is not None:
             await self._release_if_expired(note)
         return note
+
+    async def search_by_name(self, query: str, limit: int = 10) -> list[MeNote]:
+        result = await self.db.execute(
+            select(MeNote)
+            .where(MeNote.name.ilike(f"%{query}%"))
+            .order_by(MeNote.name)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def sync_links(self, note_id: int, target_note_ids: set[int]) -> None:
+        await self.db.execute(
+            delete(MeNoteLink).where(MeNoteLink.source_note_id == note_id)
+        )
+        for target_id in target_note_ids:
+            self.db.add(MeNoteLink(source_note_id=note_id, target_note_id=target_id))
+        await self.db.commit()
+
+    async def get_backlinks(self, note_id: int) -> list[MeNote]:
+        result = await self.db.execute(
+            select(MeNote)
+            .join(MeNoteLink, MeNoteLink.source_note_id == MeNote.id)
+            .where(MeNoteLink.target_note_id == note_id)
+        )
+        return list(result.scalars().unique().all())
+
+    async def get_all_links(self) -> list[MeNoteLink]:
+        result = await self.db.execute(select(MeNoteLink))
+        return list(result.scalars().all())
+
+    async def get_all_nodes(self) -> list[MeNote]:
+        result = await self.db.execute(select(MeNote))
+        return list(result.scalars().all())
 

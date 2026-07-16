@@ -61,11 +61,23 @@ export function Sidebar() {
         }
     };
 
+    const buildUniqueFileName = (folderId: number, baseName: string): string => {
+        const existingNames = new Set(
+            (selectedFolderId === folderId ? selectedFolder?.files ?? [] : []).map((f) => f.name),
+        );
+        if (!existingNames.has(baseName)) return baseName;
+        let i = 1;
+        while (existingNames.has(`${baseName} (${i})`)) {
+            i += 1;
+        }
+        return `${baseName} (${i})`;
+    };
+
     const handleCreateFile = async (folderId: number) => {
         try {
             await api.meNote.create({
                 directory_id: folderId,
-                name: "Новый файл",
+                name: buildUniqueFileName(folderId, "Новый файл"),
                 content: { type: "doc", content: [] },
                 tags: [],
             });
@@ -193,15 +205,15 @@ export function Sidebar() {
                                         <div>
                                             {selectedFolder.files.map((file) => (
                                                 <div
-                                                    className={`flex flex-row items-center cursor-pointer space-x-2 hover:text-mg-lime font-normal ${selectedFileId === file.id ? "text-mg-lime" : "text-mg-text"}`}
+                                                    className={`flex flex-row items-center cursor-pointer space-x-2 hover:text-mg-lime font-normal min-w-0 ${selectedFileId === file.id ? "text-mg-lime" : "text-mg-text"}`}
                                                     key={file.id}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedFileId(file.id);
                                                     }}
                                                 >
-                                                    <p><FaRegFile /></p>
-                                                    <p>{file.name}</p>
+                                                    <p className={"shrink-0"}><FaRegFile /></p>
+                                                    <p className={"truncate"} title={file.name}>{file.name}</p>
                                                 </div>
                                             ))}
                                         </div>

@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/resources';
 import type { Id, MeNoteWithAll } from '@/types/api';
 import type { NoteStats } from './EditMod';
+import { Wikilink } from './WikilinkExtension';
 
 interface ViewModProps {
     noteId: Id;
@@ -48,6 +49,7 @@ export function ViewMod({ noteId, onStatsChange }: ViewModProps) {
             TableHeader,
             Link.configure({ openOnClick: true }),
             Highlight.configure({ multicolor: false }),
+            Wikilink,
         ],
         content: '',
         editable: false,
