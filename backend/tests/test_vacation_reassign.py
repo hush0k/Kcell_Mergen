@@ -10,6 +10,7 @@ from app.user.enums import UserRoles
 from app.user.model import User
 from app.vacation_schedule.enums import VacationStatus, VacationType
 from app.vacation_schedule.model import VacationSchedule
+from app.control.enums import ControlStatus, Frequency, Area
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -17,12 +18,14 @@ async def setup_data(db):
     """Создаём двух юзеров, контрол и отпуск."""
     responsible = User(
         username="responsible_user",
+        email="responsible@test.local",
         hashed_password="hash",
         role=UserRoles.USER,
         is_og=False,
     )
     backup = User(
         username="backup_user",
+        email="backup@test.local",
         hashed_password="hash",
         role=UserRoles.USER,
         is_og=False,
@@ -31,7 +34,7 @@ async def setup_data(db):
     await db.flush()
 
     control = Control(
-        area="Test",
+        area=Area.TF,
         name="Test Control",
         time_estimate=30,
         frequency=Frequency.DAILY,

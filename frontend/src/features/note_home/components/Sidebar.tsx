@@ -213,7 +213,7 @@ export function Sidebar() {
                                                     }}
                                                 >
                                                     <p className={"shrink-0"}><FaRegFile /></p>
-                                                    <p className={"truncate"} title={file.name}>{file.name}</p>
+                                                    <p className={"truncate"}>{file.name}</p>
                                                 </div>
                                             ))}
                                         </div>

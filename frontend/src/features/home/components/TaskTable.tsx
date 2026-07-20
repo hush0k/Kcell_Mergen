@@ -142,8 +142,8 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                         onClick={() => onView?.(String(item.id))}
                     >
                         <td className="px-3.5 py-2.5 text-sm whitespace-nowrap">{formatDate(item.created_at)}</td>
-                        <td className="px-3.5 py-2.5 text-sm">
-                            <a href={item.control?.dashboard_url} target="_blank" rel="noreferrer">
+                        <td className="px-3.5 py-2.5 text-sm font-bold">
+                            <a href={item.control?.dashboard_url} target="_blank" rel="noreferrer" className={"cursor-pointer hover:underline"}>
                                 {item.control.name}
                             </a>
                         </td>

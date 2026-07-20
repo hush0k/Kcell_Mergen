@@ -81,7 +81,7 @@ class TaskRepository:
             .load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
             joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
         ]
-        base_order = [Task.created_at.desc(), Task.id.desc()]
+        base_order = [Control.name.desc(), Task.created_at.desc()]
 
         if current_user is None or current_user.role == UserRoles.ADMIN:
             where = [Control.status == ControlStatus.ACTIVE]
