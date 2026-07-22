@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNoteSelection } from "@/contexts/NoteSelectionContext";
-import { EditMod } from "@/features/note_home/components/EditMod";
+import { EditMod, type EditModHandle } from "@/features/note_home/components/EditMod";
 import type { NoteStats } from "@/features/note_home/components/EditMod";
 import { ViewMod } from "@/features/note_home/components/ViewMod";
 import { EmptyNoteState } from "@/features/note_home/components/EmptyNoteState";
@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { RiEdit2Fill, RiSaveLine } from "react-icons/ri";
 import { MdDeleteOutline } from "react-icons/md";
+import { LuHistory } from "react-icons/lu";
 import { api } from "@/api/resources";
 import { meNoteSocket } from "@/api/me-note-ws-client";
 import type { MeNoteWithAll, UserBrief } from "@/types/api";
@@ -38,6 +39,7 @@ export function MergenNoteMainPage() {
     const [stats, setStats] = useState<NoteStats | null>(null);
     const [note, setNote] = useState<MeNoteWithAll | null>(null);
     const [lockedByOther, setLockedByOther] = useState(false);
+    const editModRef = useRef<EditModHandle>(null);
 
     const handleDelete = async () => {
         if (!selectedFileId) return;
@@ -52,6 +54,19 @@ export function MergenNoteMainPage() {
         } finally {
             setDeleting(false);
         }
+    };
+
+    const handleSave = () => {
+        if (!isEditing && lockedByOther) return;
+
+        if (isEditing) {
+            editModRef.current?.saveVersion();
+        }
+        setIsEditing(!isEditing);
+    };
+
+    const handleRestoreLastVersion = () => {
+        editModRef.current?.restoreLastVersion();
     };
 
     useEffect(() => {
@@ -130,11 +145,17 @@ export function MergenNoteMainPage() {
                         text={isEditing ? "Сохранить" : "Редактировать"}
                         className="w-auto"
                         disabled={!isEditing && lockedByOther}
-                        onClick={() => {
-                            if (!isEditing && lockedByOther) return;
-                            setIsEditing(!isEditing);
-                        }}
+                        onClick={handleSave}
                     />
+                    {isEditing && (
+                        <Button
+                            icon={<LuHistory />}
+                            text="Вернуть последнюю версию"
+                            variant="outline"
+                            className="w-auto"
+                            onClick={handleRestoreLastVersion}
+                        />
+                    )}
                     <Button
                         icon={<MdDeleteOutline />}
                         text="Удалить"
@@ -148,7 +169,7 @@ export function MergenNoteMainPage() {
             <div className={selectedFileId ? "pl-36 pr-64 flex-1 min-h-0 pb-16" : "h-full"}>
                 {selectedFileId ? (
                     isEditing ? (
-                        <EditMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
+                        <EditMod ref={editModRef} key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
                     ) : (
                         <ViewMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
                     )
@@ -169,7 +190,6 @@ export function MergenNoteMainPage() {
                     <span>{stats.words} слов · {stats.lines} строк · {stats.characters} символов</span>
                 </div>
             )}
-
 
             <Modal
                 isOpen={deleteOpen}

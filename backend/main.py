@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from app.atlas.router import router as atlas_router
 from app.auth.router import router as auth_router
 from app.control.router import router as control_router
+from app.core.config import settings
 from app.db.database import create_schema
 from app.incident.router import router as incident_router
 from app.me_note.note.listener import pg_notify_me_note_listener
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await create_schema()
+    settings.ATTACHMENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     tasks: list[asyncio.Task] = []
     try:

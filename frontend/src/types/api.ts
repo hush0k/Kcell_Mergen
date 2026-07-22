@@ -267,6 +267,7 @@ export interface TagResponse {
 export interface MeNoteBase {
     name: string | null;
     content: JSONContent | null;
+    last_version: JSONContent | null;
     directory_id: number;
 }
 
@@ -278,6 +279,7 @@ export interface MeNoteCreate extends MeNoteBase {
 export interface MeNoteUpdate {
     name?: string | null;
     content?: JSONContent | null;
+    last_version?: JSONContent | null;
     tags?: string[] | null;
 }
 

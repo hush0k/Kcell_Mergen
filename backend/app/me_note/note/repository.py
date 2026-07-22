@@ -25,6 +25,7 @@ class MeNoteRepository:
             note.is_editing = False
             note.editor_id = None
             note.editing_started_at = None
+            note.updated_at = note.updated_at,
             await self.db.commit()
             await self.db.refresh(note)
 
@@ -69,6 +70,7 @@ class MeNoteRepository:
         note.is_editing = False
         note.editor_id = None
         note.editing_started_at = None
+        note.updated_at=note.updated_at,
 
         await self.db.commit()
         await self.db.refresh(note)
@@ -113,6 +115,7 @@ class MeNoteRepository:
     async def start_editng(self, note: MeNote, user: User) -> None:
         note.is_editing = True
         note.editor_id = user.id
+        updated_at=note.updated_at,
         note.editing_started_at = datetime.now(timezone.utc)
         await self.db.commit()
         await self.db.refresh(note)

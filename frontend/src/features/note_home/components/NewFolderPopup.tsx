@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { api } from "@/api/resources";
+import type { DirectoryResponse } from "@/types/api";
 
 interface NewFolderPopupProps {
+    onCreated?: (directory: DirectoryResponse) => void;
     onClose?: () => void;
-    onCreated?: () => void;
 }
 
 export function NewFolderPopup({ onClose, onCreated }: NewFolderPopupProps) {
@@ -16,8 +17,8 @@ export function NewFolderPopup({ onClose, onCreated }: NewFolderPopupProps) {
 
         setIsSubmitting(true);
         try {
-            await api.directory.create({ name: trimmed });
-            onCreated?.();
+            const newDirectory: DirectoryResponse = await api.directory.create({ name: trimmed });
+            onCreated?.(newDirectory);
             onClose?.();
         } catch (err) {
             console.error(err);

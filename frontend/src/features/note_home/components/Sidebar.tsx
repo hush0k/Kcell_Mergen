@@ -8,7 +8,7 @@ import { SiGraphql } from "react-icons/si";
 import { LiSidebar } from "@/features/home/components/LiSidebar";
 import { Button } from "@/components/Button";
 import { LuPlus, LuFolderClosed, LuFolderOpen } from "react-icons/lu";
-import { DirectoryListResponse, CurrentUser, DirectoryWithFilesResponse } from "@/types/api";
+import { DirectoryListResponse, CurrentUser, DirectoryWithFilesResponse, DirectoryResponse } from "@/types/api";
 import { FaRegFile } from "react-icons/fa6";
 import { NewFolderPopup } from "@/features/note_home/components/NewFolderPopup";
 import { RiFunctionAddFill } from "react-icons/ri";
@@ -78,6 +78,7 @@ export function Sidebar() {
             await api.meNote.create({
                 directory_id: folderId,
                 name: buildUniqueFileName(folderId, "Новый файл"),
+                last_version: null,
                 content: { type: "doc", content: [] },
                 tags: [],
             });
@@ -87,6 +88,11 @@ export function Sidebar() {
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleFolderCreated = (directory: DirectoryResponse) => {
+        fetchFolders();
+        setSelectedFolderId(directory.id);
     };
 
     useEffect(() => {
@@ -137,7 +143,7 @@ export function Sidebar() {
 
     return (
         <div className="flex flex-col justify-betweenw w-[20rem] border-r border-nt-outline-variant bg-nt-surface-container-low">
-            <div className={"flex flex-col justify-between h-full pb-5 items-center bg-mg-surface w-full bg-nt-surface-container-low"}>
+            <div className={"flex flex-col h-full pb-5 items-center bg-mg-surface w-full bg-nt-surface-container-low"}>
                 <div className={"flex flex-col space-y-6 items-center bg-mg-surface w-full bg-nt-surface-container-low"}>
                     <div className={"flex flex-row w-full space-x-2 px-4 py-2 border-b border-nt-outline-variant bg-nt-surface-container-low"}>
                         <Avatar firstName={me?.first_name} lastName={me?.last_name}/>
@@ -168,12 +174,12 @@ export function Sidebar() {
                         onClick={() => setIsNewFolderOpen(true)}
                     />
 
-                    <div className={"flex flex-col space-y-1 w-full pl-5 pb-10 h-[40rem] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_90%,transparent_100%)]"}>
+                    <div className={"flex flex-col space-y-1 w-full pl-5 pb-10 h-[40%] overflow-y-auto [mask-image:linear-gradient(to_bottom,black_90%,transparent_100%)]"}>
                         <h3 className={"uppercase font-bold text-mg-text-2"}>Папки</h3>
                         {folders?.list.map((folder) => (
                             <div key={folder.id} className={"flex flex-col w-full text-lg"}>
                                 <div
-                                    className={`group flex flex-row items-center justify-between w-full whitespace-nowrap hover:text-mg-purple cursor-pointer ${selectedFolderId === folder.id ? "text-mg-purple font-semibold" : ""}`}
+                                    className={`group flex flex-row items-center justify-between w-full whitespace-nowrap hover:text-mg-purple cursor-pointer ${selectedFolderId === folder.id ? "text-mg-purple font-semibold bg-mg-purple-soft" : ""}`}
                                     onClick={() => handleFolderClick(folder.id)}
                                 >
                                     <div className={"flex flex-row space-x-2 items-center min-w-0 flex-1"}>
@@ -241,7 +247,7 @@ export function Sidebar() {
                     onClick={() => setIsNewFolderOpen(false)}
                 >
                     <div onClick={(e) => e.stopPropagation()}>
-                        <NewFolderPopup onClose={() => setIsNewFolderOpen(false)} onCreated={fetchFolders} />
+                        <NewFolderPopup onClose={() => setIsNewFolderOpen(false)} onCreated={handleFolderCreated} />
                     </div>
                 </div>,
                 document.body

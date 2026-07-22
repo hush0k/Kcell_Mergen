@@ -1,3 +1,4 @@
+import { forwardRef, useImperativeHandle, useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -6,7 +7,6 @@ import TaskItem from '@tiptap/extension-task-item';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
-import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/resources';
 import type { Id, MeNoteWithAll } from '@/types/api';
 import { Button } from "@/components/Button";
@@ -31,6 +31,11 @@ export interface NoteStats {
     characters: number;
 }
 
+export interface EditModHandle {
+    saveVersion: () => void;
+    restoreLastVersion: () => void;
+}
+
 interface EditModProps {
     noteId: Id;
     onStatsChange?: (stats: NoteStats) => void;
@@ -45,16 +50,20 @@ function computeStats(text: string): NoteStats {
     };
 }
 
-
-
 const ZOOM_LEVELS = [50, 75, 90, 100, 110, 125, 150, 175, 200];
 
-export function EditMod({ noteId, onStatsChange }: EditModProps) {
+export const EditMod = forwardRef<EditModHandle, EditModProps>(function EditMod(
+    { noteId, onStatsChange },
+    ref
+) {
     const [note, setNote] = useState<MeNoteWithAll | null>(null);
     const [name, setName] = useState('');
     const [zoom, setZoom] = useState(100);
     const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastSavedContent = useRef<string>('');
+    const lastSavedName = useRef<string>('');
+    const isHydrating = useRef(false);
     const lowlight = createLowlight(common);
     const { triggerRefresh } = useNoteSelection();
 
@@ -77,9 +86,14 @@ export function EditMod({ noteId, onStatsChange }: EditModProps) {
         content: '',
         onUpdate: ({ editor }) => {
             onStatsChange?.(computeStats(editor.getText()));
+            if (isHydrating.current) return;
             if (saveTimeout.current) clearTimeout(saveTimeout.current);
             saveTimeout.current = setTimeout(() => {
-                api.meNote.update(noteId, { content: editor.getJSON() });
+                const json = editor.getJSON();
+                const serialized = JSON.stringify(json);
+                if (serialized === lastSavedContent.current) return;
+                lastSavedContent.current = serialized;
+                api.meNote.update(noteId, { content: json });
             }, 800);
         },
     });
@@ -106,6 +120,30 @@ export function EditMod({ noteId, onStatsChange }: EditModProps) {
         }) satisfies Record<string, boolean>,
     });
 
+    useImperativeHandle(ref, () => ({
+        saveVersion: () => {
+            if (!editor) return;
+            if (saveTimeout.current) clearTimeout(saveTimeout.current);
+            const json = editor.getJSON();
+            const serialized = JSON.stringify(json);
+            lastSavedContent.current = serialized;
+            api.meNote.update(noteId, {
+                content: json,
+                last_version: json,
+            });
+        },
+        restoreLastVersion: () => {
+            if (!editor || !note?.last_version) return;
+            if (saveTimeout.current) clearTimeout(saveTimeout.current);
+            isHydrating.current = true;
+            editor.commands.setContent(note.last_version, { emitUpdate: true });
+            isHydrating.current = false;
+            onStatsChange?.(computeStats(editor.getText()));
+            lastSavedContent.current = JSON.stringify(editor.getJSON());
+            api.meNote.update(noteId, { content: note.last_version });
+        },
+    }));
+
     useEffect(() => {
         const controller = new AbortController();
         let cancelled = false;
@@ -119,6 +157,7 @@ export function EditMod({ noteId, onStatsChange }: EditModProps) {
                 if (cancelled || !data) return;
                 setNote(data);
                 setName(data.name ?? '');
+                lastSavedName.current = data.name ?? '';
             })
             .catch((err) => {
                 if (err.name !== 'AbortError') console.error(err);
@@ -138,19 +177,25 @@ export function EditMod({ noteId, onStatsChange }: EditModProps) {
 
     useEffect(() => {
         if (!editor || !note) return;
+        isHydrating.current = true;
         editor.commands.setContent(note.content ?? '');
+        isHydrating.current = false;
         editor.commands.focus('end');
         onStatsChange?.(computeStats(editor.getText()));
+        lastSavedContent.current = JSON.stringify(editor.getJSON());
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editor, note?.id]);
 
     if (!editor || !note) return null;
 
     const handleNameChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setName(e.target.value);
+        const value = e.target.value;
+        setName(value);
         if (nameTimeout.current) clearTimeout(nameTimeout.current);
         nameTimeout.current = setTimeout(() => {
-            api.meNote.update(noteId, { name: e.target.value }).then(() => {
+            if (value === lastSavedName.current) return;
+            lastSavedName.current = value;
+            api.meNote.update(noteId, { name: value }).then(() => {
                 triggerRefresh();
             });
         }, 800);
@@ -336,11 +381,10 @@ export function EditMod({ noteId, onStatsChange }: EditModProps) {
                 <Tags note={note}/>
             </div>
 
-
             {/* === Editor content === */}
             <div className={"flex-1 overflow-y-auto px-6"}>
                 <EditorContent editor={editor} style={{ zoom: `${zoom}%` }} />
             </div>
         </div>
     );
-}
+});

@@ -15,6 +15,7 @@ class TagsResponse(BaseModel):
 class MeNoteBase(BaseModel):
     name: str | None = None
     content: dict[str, Any] | None = None
+    last_version: dict[str, Any] | None = None
     directory_id: int | None = None
 
 
@@ -26,6 +27,7 @@ class MeNoteCreate(MeNoteBase):
 class MeNoteUpdate(BaseModel):
     name: str | None = None
     content: dict[str, Any] | None = None
+    last_version: dict[str, Any] | None = None
     tags: list[str] | None = None
 
 class MeNoteResponse(MeNoteBase):

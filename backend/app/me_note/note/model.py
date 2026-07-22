@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String, Enum, ForeignKey, Boolean, Text, ARRAY, Table, Column, DateTime
+from sqlalchemy import Integer, String, Enum, ForeignKey, Boolean, Text, ARRAY, Table, Column, DateTime, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
@@ -37,6 +37,7 @@ class MeNote(Base, TimeStampMixin):
     last_modifier_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
     )
+    last_version: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_editing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     editor_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
@@ -50,6 +51,9 @@ class MeNote(Base, TimeStampMixin):
     tags: Mapped[list["Tags"]] = relationship(secondary=me_note_tags, back_populates="notes")
     outgoing_links: Mapped[list["MeNoteLink"]] = relationship(
         foreign_keys="[MeNoteLink.source_note_id]", cascade="all, delete-orphan"
+    )
+    attachments: Mapped[list["AttachedFiles"]] = relationship(
+        "AttachedFiles", back_populates="note", cascade="all, delete-orphan"
     )
 
 
@@ -84,3 +88,17 @@ class Tags(Base):
     name: Mapped[str] = mapped_column(String, nullable=False, default="Undefined")
 
     notes: Mapped[list["MeNote"]] = relationship(secondary=me_note_tags, back_populates="tags")
+
+
+class AttachedFiles(Base, TimeStampMixin):
+    __tablename__ = "attached_files"
+    __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    note_id: Mapped[int] = mapped_column(ForeignKey(f"{settings.POSTGRES_SCHEMA}.me_note.id", ondelete="CASCADE"), nullable=False)
+    path: Mapped[str] = mapped_column(Text, nullable=False)
+    original_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(127), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    note: Mapped["MeNote"] = relationship("MeNote", back_populates="attachments")

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
 
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     POSTGRES_USER: str
@@ -16,6 +19,8 @@ class Settings(BaseSettings):
 
     MFS_DATABASE_URL: str
     MFS_BLACKLIST_AUTHOR: str = "app_fraud"
+
+    ATTACHMENTS_DIR: Path = BASE_DIR / "storage" / "attachments"
 
     # Atlas (CODA) — сторонний сервис, переподключается независимо от MFS.
     ATLAS_API_BASE_URL: str = "https://atlas-customers-api.atlas.kcell.kz"
