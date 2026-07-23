@@ -57,30 +57,33 @@ async def handle_new_notification(notification_id: int) -> None:
 
 
 async def pg_notify_listener() -> None:
-    """Фоновая задача: слушает pg_notify и вызывает обработчик."""
-    try:
-        conn = await asyncpg.connect(settings.database_url.replace("+asyncpg", ""))
-    except Exception as e:
-        logger.error(f"asyncpg connect failed: {e}")
-        return
-
-    logger.info("asyncpg подключился успешно")
-
-    async def callback(connection, pid, channel, payload):
+    """Фоновая задача: слушает pg_notify и вызывает обработчик. Переподключается при обрыве соединения."""
+    while True:
+        conn = None
         try:
-            data = json.loads(payload)
-            notification_id = data["notification_id"]
-            logger.info(f"pg_notify получен: notification_id={notification_id}")
-            await handle_new_notification(notification_id)
+            conn = await asyncpg.connect(settings.database_url.replace("+asyncpg", ""))
+            logger.info("asyncpg подключился успешно")
+
+            async def callback(connection, pid, channel, payload):
+                try:
+                    data = json.loads(payload)
+                    notification_id = data["notification_id"]
+                    logger.info(f"pg_notify получен: notification_id={notification_id}")
+                    await handle_new_notification(notification_id)
+                except Exception as e:
+                    logger.error(f"Ошибка обработки pg_notify: {e}")
+
+            await conn.add_listener("new_notification", callback)
+            logger.info("pg_notify listener запущен, слушаем канал 'new_notification'")
+
+            while not conn.is_closed():
+                await asyncio.sleep(5)
+
+            logger.warning("pg_notify listener: соединение закрыто, переподключаюсь")
         except Exception as e:
-            logger.error(f"Ошибка обработки pg_notify: {e}")
+            logger.error(f"pg_notify listener упал: {e}, переподключаюсь через 5с")
+        finally:
+            if conn is not None and not conn.is_closed():
+                await conn.close()
 
-    await conn.add_listener("new_notification", callback)
-    logger.info("pg_notify listener запущен, слушаем канал 'new_notification'")
-
-    try:
-        while True:
-            await asyncio.sleep(1)
-    finally:
-        await conn.remove_listener("new_notification", callback)
-        await conn.close()
+        await asyncio.sleep(5)

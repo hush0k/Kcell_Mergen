@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.auth.dependencies import get_current_user, get_current_user_by_token
-from app.db.database import get_db
+from app.db.database import get_db, AsyncSessionLocal
 from app.notification.connection_manager import manager
 from app.notification.model import Notification
 from app.notification.schemas import (
@@ -95,9 +95,9 @@ async def create_notification_endpoint(
 async def websocket_endpoint(
         websocket: WebSocket,
         token: str = Query(...),
-        db: AsyncSession = Depends(get_db),
 ):
-    user = await get_current_user_by_token(token, db)
+    async with AsyncSessionLocal() as db:
+        user = await get_current_user_by_token(token, db)
     if not user:
         # Must accept before closing so the browser actually receives the
         # 1008 close code instead of seeing a bare HTTP 403 handshake

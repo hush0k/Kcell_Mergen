@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.me_note.note.connection_manager import manager as ws_manager
 
 from app.auth.dependencies import get_current_user, get_current_user_by_token
-from app.db.database import get_db
+from app.db.database import get_db, AsyncSessionLocal
 from app.me_note.note.model import MeNote
 from app.me_note.note.schemas import (
     MeNoteResponse,
@@ -116,9 +116,9 @@ async def stop_editing(
 async def websocket_endpoint(
         websocket: WebSocket,
         token: str = Query(...),
-        db: AsyncSession = Depends(get_db),
 ):
-    user = await get_current_user_by_token(token, db)
+    async with AsyncSessionLocal() as db:
+        user = await get_current_user_by_token(token, db)
     if not user:
         await websocket.accept()
         await websocket.close(code=1008)

@@ -159,4 +159,15 @@ class NotificationRepository:
 
         self.db.add(new_notification)
         await self.db.commit()
+        await self.db.refresh(new_notification)
+
+        if notification_in.recipients_email:
+            emails = [
+                email.strip()
+                for email in notification_in.recipients_email.replace(";", ",").split(",")
+                if email.strip()
+            ]
+            user_ids = await self.get_user_ids_by_emails(emails)
+            await self.bulk_create_recipients_if_not_exists(new_notification.id, user_ids)
+
         return new_notification
