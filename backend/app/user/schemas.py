@@ -29,6 +29,7 @@ class UserBase(BaseModel):
     role: UserRoles
     email: str | None
     is_og: bool
+    must_change_password: bool = False
 
 
 class UserCreate(UserBase):
@@ -47,6 +48,7 @@ class UserUpdate(BaseModel):
     role: UserRoles | None = None
     email: str | None = None
     is_og: bool | None = None
+    must_change_password: bool | None = None
 
 
 class UserUpdateRole(BaseModel):

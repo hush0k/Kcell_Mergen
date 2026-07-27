@@ -96,6 +96,7 @@ class UserService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный старый пароль"
             )
         user.hashed_password = hash_password(passwords.new_password)
+        user.must_change_password = False
         await self.repo.save_user(user)
 
     async def is_admin(self, user_id: int) -> bool:

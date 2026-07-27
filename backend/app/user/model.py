@@ -31,6 +31,9 @@ class User(Base, TimeStampMixin):
     is_og: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true"
+    )
 
     notification_recipients: Mapped[list["NotificationRecipient"]] = relationship("NotificationRecipient", back_populates="user")
 

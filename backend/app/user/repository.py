@@ -22,6 +22,13 @@ class UserRepository:
         result = await self.db.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
+    async def get_by_email(self, email: str) -> User | None:
+        """
+        Получает пользователя по его email.
+        """
+        result = await self.db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
+
     async def get_all(self, offset: int = 0, limit: int = 20) -> list[User]:
         """
         Возвращает список всех пользователей с пагинацией.

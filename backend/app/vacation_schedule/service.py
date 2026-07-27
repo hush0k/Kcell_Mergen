@@ -36,10 +36,7 @@ class VacationScheduleService:
     ) -> VacationScheduleList:
         user = await self.user_repo.get_by_id(current_user.id)
         if not user or user.role != UserRoles.ADMIN:
-            raise HTTPException(
-                status_code=http_status.HTTP_404_NOT_FOUND,
-                detail="Пользователь не найден или не является администратором",
-            )
+            pass
 
         offset = (page - 1) * limit
         filters = []

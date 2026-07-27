@@ -7,12 +7,7 @@ import { useState } from "react"
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser"
 import { useSidebar } from "@/contexts/SidebarContext"
 import { useNavigate } from 'react-router-dom'
-
-
-function getInitials(firstName?: string, lastName?: string) {
-    if (!firstName || !lastName) return "?";
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
-}
+import { HeaderProfileSummary } from "@/features/profile/components/HeaderProfileSummary"
 
 export function Header() {
     const [isDark, setIsDark] = useState(false);
@@ -49,18 +44,8 @@ export function Header() {
                         document.documentElement.dataset.theme = isDark ? "" : "dark";
                     }}
                 />
-
-                {/* Типо аватарка */}
-                <div className="mg-avatar">
-                    {user ? getInitials(user.first_name, user.last_name) : "..."}
-                </div>
-
-                {/* Личное информация */}
-                <div className="flex flex-col">
-                    <span className="whitespace-nowrap font-semibold">{user ? user.first_name[0] : "U"}.{user ? user.last_name : "Unknown"}</span>
-                    <span className="text-mg-text-3">{user ? user.role : "User"}</span>
-
-                </div>
+                {/* Аватарка + личная информация, кликабельно -> профиль */}
+                <HeaderProfileSummary user={user} />
 
                 {/* Кнопка выхода */}
                 <Button

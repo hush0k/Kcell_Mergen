@@ -33,6 +33,10 @@ export interface CurrentUser {
   last_name: string;
   username: string;
   role: UserRole;
+  email?: string;
+  is_og?: boolean;
+  created_at?: string;
+  must_change_password?: boolean;
 }
 
 export interface User {
