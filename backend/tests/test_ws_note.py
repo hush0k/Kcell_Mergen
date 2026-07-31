@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 from app.me_note.note.connection_manager import MeNoteConnectionManager
 

@@ -1,7 +1,9 @@
 import asyncio
+
 import websockets
 
 JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgyMjA1NTIyLCJ0eXBlIjoiYWNjZXNzIn0.PRdHTh2bUr5bVUN8VAwFHPCd3D4ZMl34Ceiy1xOKWB8"
+
 
 async def test():
     uri = f"ws://localhost:8000/api/v1/notifications/ws?token={JWT}"
@@ -13,5 +15,6 @@ async def test():
     except websockets.exceptions.InvalidStatus as e:
         print(f"Статус: {e.response.status_code}")
         print(f"Тело ответа: {e.response.body.decode()}")
+
 
 asyncio.run(test())
