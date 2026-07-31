@@ -5,17 +5,16 @@ Revises: 599f63e2c34e
 Create Date: 2026-07-08 11:03:00.668981
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
-revision: str = 'becfdac9aac2'
-down_revision: Union[str, Sequence[str], None] = '599f63e2c34e'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "becfdac9aac2"
+down_revision: str | Sequence[str] | None = "599f63e2c34e"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -39,6 +38,7 @@ def upgrade() -> None:
                    AFTER INSERT OR UPDATE OR DELETE ON kcell_web.me_note
                    FOR EACH ROW EXECUTE FUNCTION kcell_web.notify_me_note_changed();
                """)
+
 
 def downgrade() -> None:
     op.execute("DROP TRIGGER IF EXISTS on_me_note_changed ON kcell_web.me_note;")

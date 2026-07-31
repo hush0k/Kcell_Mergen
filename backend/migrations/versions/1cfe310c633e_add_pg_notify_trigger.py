@@ -5,17 +5,16 @@ Revises: 1015870c9630
 Create Date: 2026-06-23 09:49:13.064705
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
-revision: str = '1cfe310c633e'
-down_revision: Union[str, Sequence[str], None] = '1015870c9630'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "1cfe310c633e"
+down_revision: str | Sequence[str] | None = "1015870c9630"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
