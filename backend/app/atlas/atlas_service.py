@@ -121,7 +121,9 @@ async def run_atlas_notes(
     if mode == "add" and template_id not in NOTE_TEMPLATES:
         raise ValueError(f"Неизвестный шаблон: {template_id}")
 
-    note_text = ATLAS_DELETE_NOTE_TEXT if mode == "delete" else NOTE_TEMPLATES[template_id]
+    note_text = (
+        ATLAS_DELETE_NOTE_TEXT if mode == "delete" else NOTE_TEMPLATES[template_id]
+    )
     audit_action = _AUDIT_ACTION_FOR_MODE[mode].get(template_id, Action.NOTE_DELETE)
 
     msisdns = parse_msisdn_list(raw_text)
@@ -147,7 +149,9 @@ async def run_atlas_notes(
                 {
                     "msisdn": msisdn,
                     "status": "ok",
-                    "message": "Комментарий добавлен" if mode == "add" else "Комментарий удалён",
+                    "message": "Комментарий добавлен"
+                    if mode == "add"
+                    else "Комментарий удалён",
                 }
             )
         except Exception as e:
