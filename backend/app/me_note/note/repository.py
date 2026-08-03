@@ -18,17 +18,19 @@ class MeNoteRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def _release_if_expired(self, note: MeNote) -> None:
+    async def _is_lock_expired(self, note: MeNote) -> bool:
         if not note.is_editing or note.editing_started_at is None:
+            return False
+        return note.editing_started_at < datetime.now(timezone.utc) - timedelta(minutes=LOCK_TTL_MINUTES)
+
+    async def _release_if_expired(self, note: MeNote) -> None:
+        if not await self._is_lock_expired(note):
             return
-        lock_expired = note.editing_started_at < datetime.now(timezone.utc) - timedelta(minutes=LOCK_TTL_MINUTES)
-        if lock_expired:
-            note.is_editing = False
-            note.editor_id = None
-            note.editing_started_at = None
-            note.updated_at = note.updated_at,
-            await self.db.commit()
-            await self.db.refresh(note)
+        note.is_editing = False
+        note.editor_id = None
+        note.editing_started_at = None
+        await self.db.commit()
+        await self.db.refresh(note)
 
     async def release_expired_locks(self) -> int:
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=LOCK_TTL_MINUTES)
@@ -50,7 +52,6 @@ class MeNoteRepository:
         await self.db.refresh(note_in, attribute_names=["tags"])
         return note_in
 
-
     async def update(self, note: MeNote, note_in: MeNoteUpdate, current_user: User, tags: list[Tags] | None = None) -> MeNote:
         updated_note = note_in.model_dump(exclude_unset=True, exclude={"tags"})
         for key, value in updated_note.items():
@@ -71,11 +72,9 @@ class MeNoteRepository:
         note.is_editing = False
         note.editor_id = None
         note.editing_started_at = None
-        note.updated_at=note.updated_at,
 
         await self.db.commit()
         await self.db.refresh(note)
-
 
     async def delete_many(self, notes: list[MeNote]) -> None:
         for note in notes:
@@ -85,28 +84,32 @@ class MeNoteRepository:
     async def list_notes(self, current_user_id: int, offset: int = 0, limit: int = 0) -> MeNoteListResponse:
         total = await self.db.scalar(select(func.count()).select_from(MeNote))
         user = await self.db.get(User, current_user_id)
-        if user.role == UserRoles.ADMIN:
-            notes = await self.db.execute(
-                select(MeNote)
-                .options(joinedload(MeNote.tags))
-                .order_by(MeNote.updated_at.desc())
-                .offset(offset)
-                .limit(limit)
-            )
-        else:
-            notes = await self.db.execute(
-                select(MeNote)
-                .options(joinedload(MeNote.tags))
-                .where(MeNote.can_read.any(User.id == current_user_id))
-                .order_by(MeNote.updated_at.desc())
-                .offset(offset)
-                .limit(limit)
-            )
-        list_note = list(notes.scalars().unique().all())
-        for note in list_note:
-            await self._release_if_expired(note)
-        return MeNoteListResponse(total=total, list=list_note, offset=offset, limit=limit)
 
+        base_query = select(MeNote).options(joinedload(MeNote.tags))
+        if user.role != UserRoles.ADMIN:
+            base_query = base_query.where(MeNote.can_read.any(User.id == current_user_id))
+
+        notes = await self.db.execute(
+            base_query.order_by(MeNote.updated_at.desc()).offset(offset).limit(limit)
+        )
+        list_note = list(notes.scalars().unique().all())
+
+        expired_ids = [n.id for n in list_note if await self._is_lock_expired(n)]
+
+        if expired_ids:
+            await self.db.execute(
+                update(MeNote)
+                .where(MeNote.id.in_(expired_ids))
+                .values(is_editing=False, editor_id=None, editing_started_at=None)
+            )
+            await self.db.commit()
+            for n in list_note:
+                if n.id in expired_ids:
+                    n.is_editing = False
+                    n.editor_id = None
+                    n.editing_started_at = None
+
+        return MeNoteListResponse(total=total, list=list_note, offset=offset, limit=limit)
 
     async def get_note(self, note_id: int) -> MeNoteWithAll | None:
         note = await self.db.scalar(
@@ -129,7 +132,6 @@ class MeNoteRepository:
     async def start_editng(self, note: MeNote, user: User) -> None:
         note.is_editing = True
         note.editor_id = user.id
-        updated_at=note.updated_at,
         note.editing_started_at = datetime.now(timezone.utc)
         await self.db.commit()
         await self.db.refresh(note)
@@ -177,41 +179,54 @@ class MeNoteRepository:
         result = await self.db.execute(select(MeNote))
         return list(result.scalars().all())
 
-
     async def give_reader_root(self, note: MeNote, user_id: int) -> MeNote:
         if user_id not in {user.id for user in note.can_read}:
             target_user = await self.db.get(User, user_id)
             note.can_read.append(target_user)
-        await self.db.commit()
-        await self.db.refresh(note)
-
+            await self.db.commit()
+            await self.db.refresh(note)
         return note
 
     async def give_editor_root(self, note: MeNote, user_id: int) -> MeNote:
+        changed = False
         target_user = None
+
         if user_id not in {user.id for user in note.can_edit}:
             target_user = await self.db.get(User, user_id)
             note.can_edit.append(target_user)
+            changed = True
+
         if user_id not in {user.id for user in note.can_read}:
             target_user = target_user or await self.db.get(User, user_id)
             note.can_read.append(target_user)
-        await self.db.commit()
-        await self.db.refresh(note)
+            changed = True
+
+        if changed:
+            await self.db.commit()
+            await self.db.refresh(note)
 
         return note
 
     async def remove_reader_root(self, note: MeNote, user_id: int) -> MeNote:
-        note.can_read = [user for user in note.can_read if user.id != user_id]
-        note.can_edit = [user for user in note.can_edit if user.id != user_id]
+        can_read_ids = {u.id for u in note.can_read}
+        can_edit_ids = {u.id for u in note.can_edit}
+
+        if user_id not in can_read_ids and user_id not in can_edit_ids:
+            return note
+
+        note.can_read = [u for u in note.can_read if u.id != user_id]
+        note.can_edit = [u for u in note.can_edit if u.id != user_id]
         await self.db.commit()
         await self.db.refresh(note)
 
         return note
 
     async def remove_editor_root(self, note: MeNote, user_id: int) -> MeNote:
-        note.can_edit = [user for user in note.can_edit if user.id != user_id]
+        if user_id not in {u.id for u in note.can_edit}:
+            return note
+
+        note.can_edit = [u for u in note.can_edit if u.id != user_id]
         await self.db.commit()
         await self.db.refresh(note)
 
         return note
-
