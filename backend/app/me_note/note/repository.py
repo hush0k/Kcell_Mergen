@@ -49,7 +49,7 @@ class MeNoteRepository:
             note_in.name = str(note_in.name + f" ({self.cnt})")
         self.db.add(note_in)
         await self.db.commit()
-        await self.db.refresh(note_in, attribute_names=["tags"])
+        await self.db.refresh(note_in, attribute_names=["tags", "can_edit", "can_read"])
         return note_in
 
     async def update(self, note: MeNote, note_in: MeNoteUpdate, current_user: User, tags: list[Tags] | None = None) -> MeNote:
@@ -63,7 +63,7 @@ class MeNoteRepository:
         note.last_modifier_id = current_user.id
 
         await self.db.commit()
-        await self.db.refresh(note, attribute_names=["tags"])
+        await self.db.refresh(note, attribute_names=["tags", "can_edit", "can_read"])
         return note
 
     async def stop_editing(self, note: MeNote, user: User) -> None:
@@ -85,7 +85,11 @@ class MeNoteRepository:
         total = await self.db.scalar(select(func.count()).select_from(MeNote))
         user = await self.db.get(User, current_user_id)
 
-        base_query = select(MeNote).options(joinedload(MeNote.tags))
+        base_query = select(MeNote).options(
+            joinedload(MeNote.tags),
+            joinedload(MeNote.can_edit),
+            joinedload(MeNote.can_read),
+        )
         if user.role != UserRoles.ADMIN:
             base_query = base_query.where(MeNote.can_read.any(User.id == current_user_id))
 
@@ -139,7 +143,11 @@ class MeNoteRepository:
     async def get_by_id(self, note_id: int) -> MeNote | None:
         note = await self.db.scalar(
             select(MeNote)
-            .options(joinedload(MeNote.tags))
+            .options(
+                joinedload(MeNote.tags),
+                joinedload(MeNote.can_edit),
+                joinedload(MeNote.can_read),
+            )
             .where(MeNote.id == note_id)
         )
         if note is not None:
