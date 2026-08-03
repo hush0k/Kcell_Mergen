@@ -35,7 +35,12 @@ class DirectoryRepository:
     async def get_by_id(self, directory_id: int) -> Directory:
         result = await self.db.execute(
             select(Directory)
-            .options(joinedload(Directory.files).joinedload(MeNote.tags))
+            .options(
+                joinedload(Directory.files).joinedload(MeNote.tags),
+                joinedload(Directory.files).joinedload(MeNote.creater),
+                joinedload(Directory.files).joinedload(MeNote.last_modifier),
+                joinedload(Directory.files).joinedload(MeNote.editor),
+            )
             .where(Directory.id == directory_id)
         )
         return result.unique().scalar_one_or_none()

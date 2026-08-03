@@ -3,6 +3,7 @@ import { IoSettingsSharp } from "react-icons/io5";
 import { LuTriangleAlert } from "react-icons/lu";
 import { IoNotifications } from "react-icons/io5";
 import { MdOutlineHolidayVillage } from "react-icons/md";
+import { MdAdminPanelSettings } from "react-icons/md";
 import { TbReportSearch } from "react-icons/tb";
 import { LiSidebar } from "@/features/home/components/LiSidebar";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -10,6 +11,8 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { useNotificationStore } from "@/features/notifications/store";
 import { Button } from "@/components/Button";
 import { PiNotePencilFill } from "react-icons/pi";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { isAdminRole } from "@/features/admin/utils";
 
 
 export function Sidebar() {
@@ -17,6 +20,7 @@ export function Sidebar() {
     const { pathname } = useLocation();
     const { collapsed } = useSidebar();
     const unreadCount = useNotificationStore(s => s.unreadCount);
+    const me = useCurrentUser();
 
     const buttons = [
         { name: "Задачи", icon: <FaTasks size={18}/>, isOpen: true, link: 'home' },
@@ -26,6 +30,9 @@ export function Sidebar() {
         { name: "МФС", icon: <FaClipboardList size={18}/>, isOpen: false, link: 'mfs' },
         { name: "Отпуски", icon: <MdOutlineHolidayVillage size={18}/>, isOpen: false, link: 'vacation' },
         { name: "Отчеты", icon: <TbReportSearch size={18}/>, isOpen: false, link: 'reports' },
+        ...(isAdminRole(me?.role)
+            ? [{ name: "Админ", icon: <MdAdminPanelSettings size={18}/>, isOpen: false, link: 'admin' }]
+            : []),
     ]
 
     return (

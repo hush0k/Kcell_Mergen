@@ -4,16 +4,20 @@ import { EditMod, type EditModHandle } from "@/features/note_home/components/Edi
 import type { NoteStats } from "@/features/note_home/components/EditMod";
 import { ViewMod } from "@/features/note_home/components/ViewMod";
 import { EmptyNoteState } from "@/features/note_home/components/EmptyNoteState";
+import { NoAccessState } from "@/features/note_home/components/NoAccessState";
+import { PeopleSettings } from "@/features/note_home/components/PeopleSettings";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { RiEdit2Fill, RiSaveLine } from "react-icons/ri";
 import { MdDeleteOutline } from "react-icons/md";
 import { LuHistory } from "react-icons/lu";
 import { api } from "@/api/resources";
+import { ApiError } from "@/api/client";
 import { meNoteSocket } from "@/api/me-note-ws-client";
-import type { MeNoteWithAll, UserBrief } from "@/types/api";
+import { IoMdSettings } from "react-icons/io";
+import type { CurrentUser, MeNoteAccessDeniedDetail, MeNoteWithAll, UserBrief } from "@/types/api";
 
-const LOCK_TTL_MS = 2 * 60 * 1000;
+const LOCK_TTL_MS = 1 * 60 * 1000;
 
 function formatUserName(user: UserBrief): string {
     const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
@@ -39,7 +43,14 @@ export function MergenNoteMainPage() {
     const [stats, setStats] = useState<NoteStats | null>(null);
     const [note, setNote] = useState<MeNoteWithAll | null>(null);
     const [lockedByOther, setLockedByOther] = useState(false);
+    const [accessDenied, setAccessDenied] = useState<MeNoteAccessDeniedDetail | null>(null);
+    const [isPeopleSettingsOpen, setIsPeopleSettingsOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
     const editModRef = useRef<EditModHandle>(null);
+
+    useEffect(() => {
+        api.auth.me().then(setCurrentUser).catch((e) => console.error(e));
+    }, []);
 
     const handleDelete = async () => {
         if (!selectedFileId) return;
@@ -89,9 +100,11 @@ export function MergenNoteMainPage() {
             setNote(null);
             setIsEditing(false);
             setLockedByOther(false);
+            setAccessDenied(null);
             return;
         }
 
+        setAccessDenied(null);
         const controller = new AbortController();
         api.meNote.get(selectedFileId, { signal: controller.signal })
             .then((data) => {
@@ -100,7 +113,13 @@ export function MergenNoteMainPage() {
                 setIsEditing(false);
             })
             .catch((err) => {
-                if (err.name !== "AbortError") console.error(err);
+                if (err.name === "AbortError") return;
+                if (err instanceof ApiError && err.status === 403) {
+                    const detail = err.payload as { detail?: MeNoteAccessDeniedDetail };
+                    setAccessDenied(detail?.detail ?? null);
+                    return;
+                }
+                console.error(err);
             });
 
         return () => controller.abort();
@@ -138,8 +157,15 @@ export function MergenNoteMainPage() {
 
     return (
         <div className={"bg-nt-surface m-0 p-0 h-screen w-full flex flex-col"}>
-            {selectedFileId && (
+            {selectedFileId && !accessDenied && (
                 <div className="flex flex-row justify-end space-x-10 px-6 py-3 pb-10 shrink-0">
+                    <Button
+                        icon={<IoMdSettings size={20}/>}
+                        variant={"outline"}
+                        className={"w-auto px-3"}
+                        size={"md"}
+                        onClick={() => setIsPeopleSettingsOpen(true)}
+                    />
                     <Button
                         icon={isEditing ? <RiSaveLine /> : <RiEdit2Fill />}
                         text={isEditing ? "Сохранить" : "Редактировать"}
@@ -168,7 +194,9 @@ export function MergenNoteMainPage() {
 
             <div className={selectedFileId ? "pl-36 pr-64 flex-1 min-h-0 pb-16" : "h-full"}>
                 {selectedFileId ? (
-                    isEditing ? (
+                    accessDenied ? (
+                        <NoAccessState detail={accessDenied} />
+                    ) : isEditing ? (
                         <EditMod ref={editModRef} key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
                     ) : (
                         <ViewMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
@@ -178,7 +206,7 @@ export function MergenNoteMainPage() {
                 )}
             </div>
 
-            {selectedFileId && stats && (
+            {selectedFileId && !accessDenied && stats && (
                 <div className="shrink-0 w-full flex justify-between items-center px-6 py-2.5 border-t border-mg-text-3 bg-nt-primary/10 text-sm font-medium text-mg-text">
                     <span>
                         {note?.last_modifier
@@ -222,6 +250,29 @@ export function MergenNoteMainPage() {
                     </div>
                 </div>
             </Modal>
+
+            <div
+                className={`fixed inset-0 z-50 bg-black/40 transition-opacity duration-300 ${
+                    isPeopleSettingsOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                }`}
+                onClick={() => setIsPeopleSettingsOpen(false)}
+            >
+                <div
+                    className={`absolute top-0 right-0 h-full shadow-xl transition-transform duration-300 ease-in-out ${
+                        isPeopleSettingsOpen ? "translate-x-0" : "translate-x-full"
+                    }`}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {note && currentUser && (
+                        <PeopleSettings
+                            note={note}
+                            currentUser={currentUser}
+                            onClose={() => setIsPeopleSettingsOpen(false)}
+                            onNoteUpdate={setNote}
+                        />
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

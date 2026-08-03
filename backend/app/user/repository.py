@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.user.enums import UserRoles
 from app.user.model import User
 from app.user.schemas import UserUpdate
 
@@ -64,3 +65,13 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+
+    async def get_admin_emails(self) -> list[str]:
+        ids = await self.db.execute(
+            select(User.email).where(User.role == UserRoles.ADMIN)
+        )
+        return list(ids.scalars().all())
+
+    async def get_admins(self) -> list[User]:
+        result = await self.db.execute(select(User).where(User.role == UserRoles.ADMIN))
+        return list(result.scalars().all())

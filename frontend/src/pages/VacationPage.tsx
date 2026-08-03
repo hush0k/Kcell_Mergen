@@ -111,6 +111,7 @@ export function VacationPage() {
                     onEdit={setEditId}
                     onDelete={setDeleteTarget}
                     refreshTrigger={refreshKey}
+                    isAdmin={me?.role === "ADMIN"}
                 />
             </div>
 

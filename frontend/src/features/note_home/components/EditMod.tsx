@@ -167,11 +167,19 @@ export const EditMod = forwardRef<EditModHandle, EditModProps>(function EditMod(
             api.meNote.startEdit(noteId).catch(console.error);
         }, 60_000);
 
+        const releaseLock = () => {
+            api.meNote.stopEdit(noteId).catch(console.error);
+        };
+        window.addEventListener('pagehide', releaseLock);
+        window.addEventListener('beforeunload', releaseLock);
+
         return () => {
             cancelled = true;
             controller.abort();
             clearInterval(heartbeat);
-            api.meNote.stopEdit(noteId).catch(console.error);
+            window.removeEventListener('pagehide', releaseLock);
+            window.removeEventListener('beforeunload', releaseLock);
+            releaseLock();
         };
     }, [noteId]);
 

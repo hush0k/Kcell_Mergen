@@ -21,6 +21,7 @@ interface Props {
     search?: string;
     onView: (id: string) => void;
     refreshTrigger?: number;
+    isAdmin?: boolean;
 }
 
 const columns = [
@@ -32,7 +33,7 @@ const columns = [
     { header: "Действие", width: "w-[10%]" },
 ];
 
-export function ControlTable({ onTotalChange, filters, search, onView, refreshTrigger }: Props) {
+export function ControlTable({ onTotalChange, filters, search, onView, refreshTrigger, isAdmin }: Props) {
     const [items, setItems] = useState<ControlWithUsers[]>([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -140,12 +141,14 @@ export function ControlTable({ onTotalChange, filters, search, onView, refreshTr
                                     className="p-1.5"
                                     onClick={() => onView?.(String(item.id))}
                                 />
-                                <Button
-                                    icon={<MdSwapHoriz size={16}/>}
-                                    variant="outline"
-                                    className="p-1.5"
-                                    onClick={() => handleChangeStatus(item.id)}
-                                />
+                                {isAdmin && (
+                                    <Button
+                                        icon={<MdSwapHoriz size={16}/>}
+                                        variant="outline"
+                                        className="p-1.5"
+                                        onClick={() => handleChangeStatus(item.id)}
+                                    />
+                                )}
                             </div>
                         </td>
                     </tr>

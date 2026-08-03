@@ -85,6 +85,7 @@ export function ControllerPage() {
                     search={debouncedSearch}
                     onView={(id: string) => setEditId(Number(id))}
                     refreshTrigger={refreshKey}
+                    isAdmin={me?.role === "ADMIN"}
                 />
             </div>
 

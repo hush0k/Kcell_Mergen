@@ -20,16 +20,18 @@ interface Props {
     onEdit: (id: number) => void;
     onDelete: (vacation: VacationScheduleWithUser) => void;
     refreshTrigger?: number;
+    isAdmin?: boolean;
 }
 
-const columns = [
+const baseColumns = [
     { header: "Сотрудник", width: "w-[24%]" },
     { header: "Тип", width: "w-[18%]" },
     { header: "Дата начало", width: "w-[14%]" },
     { header: "Дата окончание", width: "w-[14%]" },
     { header: "Статус", width: "w-[12%]" },
-    { header: "Действии", width: "w-[12%]" },
 ];
+
+const actionColumn = { header: "Действии", width: "w-[12%]" };
 
 const formatUser = (item: VacationScheduleWithUser) => {
     if (!item.user) return "Не назначен";
@@ -57,7 +59,8 @@ const listVacations = (
     );
 };
 
-export function VacationTable({ onTotalChange, filters, search, onEdit, onDelete, refreshTrigger }: Props) {
+export function VacationTable({ onTotalChange, filters, search, onEdit, onDelete, refreshTrigger, isAdmin }: Props) {
+    const columns = isAdmin ? [...baseColumns, actionColumn] : baseColumns;
     const [items, setItems] = useState<VacationScheduleWithUser[]>([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -139,22 +142,24 @@ export function VacationTable({ onTotalChange, filters, search, onEdit, onDelete
                                 {getVacationStatusLabel(item.status)}
                             </div>
                         </td>
-                        <td className="px-3.5 py-2.5">
-                            <div className="flex gap-1.5">
-                                <Button
-                                    icon={<FiEdit2 size={16}/>}
-                                    variant="outline"
-                                    className="p-1.5"
-                                    onClick={() => onEdit(item.id)}
-                                />
-                                <Button
-                                    icon={<FiTrash2 size={16}/>}
-                                    variant="danger"
-                                    className="p-1.5 border"
-                                    onClick={() => onDelete(item)}
-                                />
-                            </div>
-                        </td>
+                        {isAdmin && (
+                            <td className="px-3.5 py-2.5">
+                                <div className="flex gap-1.5">
+                                    <Button
+                                        icon={<FiEdit2 size={16}/>}
+                                        variant="outline"
+                                        className="p-1.5"
+                                        onClick={() => onEdit(item.id)}
+                                    />
+                                    <Button
+                                        icon={<FiTrash2 size={16}/>}
+                                        variant="danger"
+                                        className="p-1.5 border"
+                                        onClick={() => onDelete(item)}
+                                    />
+                                </div>
+                            </td>
+                        )}
                     </tr>
                 ))}
                 </tbody>

@@ -43,6 +43,18 @@ export function PopupTask({ id, onClose }: Props) {
         setHasChanged(true);
     }
 
+    async function handleTaskAction() {
+        if (!data) return;
+        if (!data.start_time) {
+            await api.tasks.start(data.id);
+        } else {
+            await api.tasks.complete(data.id);
+        }
+        const refreshed = await api.tasks.getWithControls(Number(id));
+        setData(refreshed);
+        setHasChanged(true);
+    }
+
     useEffect(() => {
         api.tasks.getWithControls(Number(id)).then(res => setData(res))
     }, [id])
@@ -59,7 +71,7 @@ export function PopupTask({ id, onClose }: Props) {
     const correctTime = data ? calculateTime(data.control.time_estimate) : null;
 
     return (
-        <div className="bg-mg-surface rounded-3xl min-w-[40rem] h-[47rem] flex flex-col">
+        <div className="bg-mg-surface rounded-3xl min-w-[40rem] h-[50rem] flex flex-col">
             {data ? (
                 <div className="flex flex-col h-full">
                     <div className="bg-mg-surface-2 rounded-t-3xl p-8 border-b flex flex-row justify-between items-start">
@@ -207,6 +219,15 @@ export function PopupTask({ id, onClose }: Props) {
                                 className="text-sm w-56 absolute bottom-8 right-8"
                                 onClick={() => setShowComment(true)}
                             />
+                            {/*{!data.end_time && (
+                                <Button
+                                    size="sm"
+                                    text={data.start_time ? "Закончить задачу" : "Начать задачу"}
+                                    className="text-sm w-auto absolute bottom-8 right-72"
+                                    onClick={handleTaskAction}
+                                />
+                            )}*/}
+
                         </div>
                     </div>
                 </div>

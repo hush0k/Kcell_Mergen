@@ -222,6 +222,11 @@ export interface NotificationResponse {
     responsible_user: UserBrief | null;
     start_time: IsoDateTime | null;
     end_time: IsoDateTime | null;
+    is_system_request: boolean;
+    request_note_id: number | null;
+    request_edit_mode: boolean;
+    requester_user_id: number | null;
+    access_granted: boolean;
 }
 
 export interface NotificationRecipient {
@@ -295,6 +300,8 @@ export interface MeNoteResponse extends MeNoteBase {
     tags: TagResponse[];
     is_editing: boolean;
     editing_started_at: string | null;
+    can_edit_ids: number[];
+    can_read_ids: number[];
     created_at: string;
     updated_at: string;
 }
@@ -310,6 +317,8 @@ export interface MeNoteWithAll extends MeNoteBase {
     editing_started_at: string | null;
     last_modifier: UserBrief | null;
     editor: UserBrief | null;
+    can_read: UserBrief[];
+    can_edit: UserBrief[];
     created_at: string;
     updated_at: string;
 }
@@ -319,6 +328,20 @@ export interface MeNoteListResponse {
     offset: number;
     limit: number;
     total: number;
+}
+
+export interface MeNoteAccessDeniedOwner {
+    id: number;
+    first_name: string | null;
+    last_name: string | null;
+    username: string;
+}
+
+export interface MeNoteAccessDeniedDetail {
+    message: string;
+    note_id: number;
+    note_name: string | null;
+    owner: MeNoteAccessDeniedOwner | null;
 }
 
 export interface MeNoteSearchResult {
@@ -345,7 +368,7 @@ export interface DirectoryBase {
     name: string;
 }
 
-export interface DirectoryCreate extends DirectoryBase {}
+export type DirectoryCreate = DirectoryBase;
 
 export interface DirectoryUpdate {
     name?: string;

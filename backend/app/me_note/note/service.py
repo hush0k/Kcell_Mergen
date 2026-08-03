@@ -18,21 +18,32 @@ from app.me_note.note.schemas import (
 )
 from app.me_note.tags.repository import TagsRepository
 from app.me_note.tags.service import TagService
+from app.user.enums import UserRoles
 from app.user.model import User
+from app.user.repository import UserRepository
 
 
 class MeNoteService:
     def __init__(self, db: AsyncSession):
         self.repo = MeNoteRepository(db)
+        self.user_repo = UserRepository(db)
         self.tags_service = TagService(TagsRepository(db))
 
     async def create_note(self, note_in: MeNoteCreate, creater_id: int) -> MeNote:
         tags = await self.tags_service.get_or_create(names=note_in.tags)
+        creater = await self.user_repo.get_by_id(creater_id)
+        admins = await self.user_repo.get_admins()
+        editors = {creater.id: creater}
+        for admin in admins:
+            editors.setdefault(admin.id, admin)
         new_note = MeNote(
             **note_in.model_dump(exclude={"tags"}),
             creater_id=creater_id,
             tags=tags,
+            can_edit=list(editors.values()),
+            can_read=list(editors.values()),
         )
+
         return await self.repo.create(new_note)
 
     async def update_note(self, note_id: int, note_in: MeNoteUpdate, current_user: User) -> MeNote:
@@ -43,6 +54,8 @@ class MeNoteService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Откройте edit mode для редактирование")
         if note.is_editing and note.editor_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Заметка уже редактируется другим пользователем")
+        if current_user.id not in {user.id for user in note.can_edit}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="У вас нет прав для редактирование этого документа")
 
         tags = await self.tags_service.get_or_create(note_in.tags) if note_in.tags is not None else None
         updated_note = await self.repo.update(note, note_in, current_user, tags)
@@ -99,14 +112,33 @@ class MeNoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Некоторые заметки не найдены")
         await self.repo.delete_many(notes)
 
-    async def get_all_notes(self, page: int, limit: int) -> MeNoteListResponse:
+    async def get_all_notes(self, page: int, limit: int, user: User) -> MeNoteListResponse:
         offset = (page - 1) * limit
-        return await self.repo.list_notes(offset, limit)
+        return await self.repo.list_notes(user.id, offset, limit)
 
-    async def get_note(self, note_id: int) -> MeNoteWithAll:
+    async def get_note(self, note_id: int, user: User) -> MeNoteWithAll:
         note = await self.repo.get_note(note_id)
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
+        if user.id not in {u.id for u in note.can_read} and user.role != UserRoles.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "message": "У вас нет прав для чтения этого документа",
+                    "note_id": note.id,
+                    "note_name": note.name,
+                    "owner": (
+                        {
+                            "id": note.creater.id,
+                            "first_name": note.creater.first_name,
+                            "last_name": note.creater.last_name,
+                            "username": note.creater.username,
+                        }
+                        if note.creater
+                        else None
+                    ),
+                },
+            )
         return note
 
     async def stop_editing(self, note_id: int, current_user: User) -> None:
@@ -125,4 +157,113 @@ class MeNoteService:
 
         await self.repo.start_editng(note, user)
 
+    async def give_reader_root(self, note_id: int, target_user_id: int, current_user: User) -> MeNote:
+        note = await self.repo.get_note(note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
+        if note.creater_id != current_user.id and current_user.role != UserRoles.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "message": "У вас нет прав для этого действие",
+                    "note_id": note.id,
+                    "note_name": note.name,
+                    "owner": (
+                        {
+                            "id": note.creater.id,
+                            "first_name": note.creater.first_name,
+                            "last_name": note.creater.last_name,
+                            "username": note.creater.username,
+                        }
+                        if note.creater
+                        else None
+                    ),
+                })
+        return await self.repo.give_reader_root(note, target_user_id)
+
+    async def give_editor_root(self, note_id: int, target_user_id: int, current_user: User) -> MeNote:
+        note = await self.repo.get_note(note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
+        if note.creater_id != current_user.id and current_user.role != UserRoles.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "message": "У вас нет прав для этого действие",
+                    "note_id": note.id,
+                    "note_name": note.name,
+                    "owner": (
+                        {
+                            "id": note.creater.id,
+                            "first_name": note.creater.first_name,
+                            "last_name": note.creater.last_name,
+                            "username": note.creater.username,
+                        }
+                        if note.creater
+                        else None
+                    ),
+                })
+        return await self.repo.give_editor_root(note, target_user_id)
+
+    async def remove_reader_root(self, note_id: int, target_user_id: int, current_user: User) -> MeNote:
+        note = await self.repo.get_note(note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
+        if note.creater_id != current_user.id and current_user.role != UserRoles.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "message": "У вас нет прав для этого действие",
+                    "note_id": note.id,
+                    "note_name": note.name,
+                    "owner": (
+                        {
+                            "id": note.creater.id,
+                            "first_name": note.creater.first_name,
+                            "last_name": note.creater.last_name,
+                            "username": note.creater.username,
+                        }
+                        if note.creater
+                        else None
+                    ),
+                })
+        target_user = await self.repo.db.get(User, target_user_id)
+        if target_user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+        if target_user_id == current_user.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нельзя удалить самого себя")
+        if target_user.role == UserRoles.ADMIN:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нельзя удалить администратора")
+        return await self.repo.remove_reader_root(note, target_user_id)
+
+    async def remove_editor_root(self, note_id: int, target_user_id: int, current_user: User) -> MeNote:
+        note = await self.repo.get_note(note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заметка не найдена")
+        if note.creater_id != current_user.id and current_user.role != UserRoles.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "message": "У вас нет прав для этого действие",
+                    "note_id": note.id,
+                    "note_name": note.name,
+                    "owner": (
+                        {
+                            "id": note.creater.id,
+                            "first_name": note.creater.first_name,
+                            "last_name": note.creater.last_name,
+                            "username": note.creater.username,
+                        }
+                        if note.creater
+                        else None
+                    ),
+                })
+        target_user = await self.repo.db.get(User, target_user_id)
+        if target_user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+        if target_user_id == current_user.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нельзя удалить самого себя")
+        if target_user.role == UserRoles.ADMIN:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нельзя удалить администратора")
+        return await self.repo.remove_editor_root(note, target_user_id)
 

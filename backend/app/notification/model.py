@@ -18,15 +18,6 @@ class Notification(Base, TimeStampMixin):
     __table_args__ = {"schema": settings.POSTGRES_SCHEMA}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    notification_type: Mapped[NotificationTypes] = mapped_column(
-        Enum(
-            NotificationTypes,
-            schema=settings.POSTGRES_SCHEMA,
-            name="notificationtypes",
-            values_callable=lambda x: [e.value for e in x],
-        ),
-        nullable=False,
-    )
     recipients_email: Mapped[str] = mapped_column(String(4000), nullable=False)
     responsible_user_id: Mapped[int] = mapped_column(ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True)
     sender: Mapped[str] = mapped_column(String(255), nullable=False)

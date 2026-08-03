@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from watchfiles import awatch
 
 from app.auth.dependencies import get_current_user, get_current_user_by_token
 from app.db.database import get_db, AsyncSessionLocal
@@ -89,7 +90,14 @@ async def create_notification_endpoint(
         _: User = Depends(get_current_user),
 ) -> Notification:
     return await service.create_notification(notification_in)
-
+@router.post("/system-notification/{note_id}/note", response_model=NotificationResponse)
+async def system_notification(
+        service: ServiceDep,
+        note_id: int,
+        edit_mode: bool = Query(False),
+        current_user: User = Depends(get_current_user),
+) -> Notification:
+    return await service.create_system_notifiaction(current_user.id, note_id, edit_mode)
 
 @router.websocket("/ws")
 async def websocket_endpoint(

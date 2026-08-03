@@ -56,6 +56,8 @@ export const apiEndpoints = {
       `/notifications/${id}/become_responsible_user`,
     endNotificationTask: (id: number) =>
       `/notifications/${id}/end_notificaiton_task`,
+    systemNotification: (noteId: number) =>
+      `/notifications/system-notification/${noteId}/note`,
     websocket: "/notifications/ws",
   },
     meNote: {
@@ -67,6 +69,10 @@ export const apiEndpoints = {
         graph: "/me-note/graph",
         backlinks: (id: number) => `/me-note/${id}/backlinks`,
         websocket: "/me-note/ws",
+        giveReaderRoot: (id: number) => `/me-note/${id}/give-reader-root`,
+        giveEditorRoot: (id: number) => `/me-note/${id}/give-editor-root`,
+        removeReaderRoot: (id: number) => `/me-note/${id}/reader-root`,
+        removeEditorRoot: (id: number) => `/me-note/${id}/editor-root`,
     },
     directory: {
         root: "/directory/",

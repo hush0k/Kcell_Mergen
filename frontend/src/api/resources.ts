@@ -20,6 +20,7 @@ import type {
     TaskGenerationResults,
     NotificationRecipient,
     NotificationsList,
+    NotificationResponse,
     UnreadCountResponse,
     MeNoteResponse,
     MeNoteWithAll,
@@ -73,6 +74,19 @@ export const api = {
   },
   users: {
     ...crud<User>(apiEndpoints.users.root, apiEndpoints.users.byId),
+    list: (
+      params?: { page?: number; limit?: number },
+      opts?: { signal?: AbortSignal },
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", String(params?.page ?? 1));
+      searchParams.set("limit", String(params?.limit ?? 20));
+
+      return apiRequest<User[]>(
+        `${apiEndpoints.users.root}?${searchParams.toString()}`,
+        { signal: opts?.signal },
+      );
+    },
     getByUsername: (username: string) =>
       apiRequest<User>(apiEndpoints.users.byUsername(username)),
     updatePassword: (id: Id, payload: ApiRecord) =>
@@ -247,6 +261,11 @@ export const api = {
         method: "POST",
         body: payload,
       }),
+    requestNoteAccess: (noteId: Id, editMode: boolean) =>
+      apiRequest<NotificationResponse>(
+        `${apiEndpoints.notifications.systemNotification(Number(noteId))}?edit_mode=${editMode}`,
+        { method: "POST" },
+      ),
   },
     meNote: {
         list: (
@@ -292,6 +311,14 @@ export const api = {
             apiRequest<MeNoteGraphResponse>(apiEndpoints.meNote.graph, { signal: opts?.signal }),
         backlinks: (id: Id, opts?: { signal?: AbortSignal }) =>
             apiRequest<MeNoteResponse[]>(apiEndpoints.meNote.backlinks(id), { signal: opts?.signal }),
+        giveReaderRoot: (id: Id, userId: Id) =>
+            apiRequest<MeNoteWithAll>(`${apiEndpoints.meNote.giveReaderRoot(Number(id))}?user_id=${userId}`, { method: "PATCH" }),
+        giveEditorRoot: (id: Id, userId: Id) =>
+            apiRequest<MeNoteWithAll>(`${apiEndpoints.meNote.giveEditorRoot(Number(id))}?user_id=${userId}`, { method: "PATCH" }),
+        removeReaderRoot: (id: Id, userId: Id) =>
+            apiRequest<MeNoteWithAll>(`${apiEndpoints.meNote.removeReaderRoot(Number(id))}?user_id=${userId}`, { method: "DELETE" }),
+        removeEditorRoot: (id: Id, userId: Id) =>
+            apiRequest<MeNoteWithAll>(`${apiEndpoints.meNote.removeEditorRoot(Number(id))}?user_id=${userId}`, { method: "DELETE" }),
     },
     directory: {
         list: (

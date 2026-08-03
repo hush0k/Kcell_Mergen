@@ -51,22 +51,26 @@ class VacationScheduleService:
                     User.first_name.ilike(search_term),
                     User.last_name.ilike(search_term),
                     User.username.ilike(search_term),
-                    func.concat(User.last_name, " ", User.first_name).ilike(search_term),
-                    func.concat(User.first_name, " ", User.last_name).ilike(search_term),
+                    func.concat(User.last_name, " ", User.first_name).ilike(
+                        search_term
+                    ),
+                    func.concat(User.first_name, " ", User.last_name).ilike(
+                        search_term
+                    ),
                 )
             )
 
         base_query = (
-            select(VacationSchedule)
+            select(VacationSchedule).join(VacationSchedule.user).where(*filters)
+        )
+        total = await self.db.scalar(
+            select(func.count())
+            .select_from(VacationSchedule)
             .join(VacationSchedule.user)
             .where(*filters)
         )
-        total = await self.db.scalar(
-            select(func.count()).select_from(VacationSchedule).join(VacationSchedule.user).where(*filters)
-        )
         results = await self.db.execute(
-            base_query
-            .options(joinedload(VacationSchedule.user))
+            base_query.options(joinedload(VacationSchedule.user))
             .order_by(VacationSchedule.created_at.desc())
             .offset(offset)
             .limit(limit)

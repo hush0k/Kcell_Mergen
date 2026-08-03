@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from bs4 import BeautifulSoup
@@ -6,10 +7,11 @@ from pydantic import BaseModel, computed_field
 from app.notification.enums import NotificationTypes
 from app.user.schemas import UserBrief
 
+NOTE_LINK_RE = re.compile(r"/me-notes/(\d+)")
+
 
 class NotificationResponse(BaseModel):
     id: int
-    notification_type: NotificationTypes
     responsible_user_id: int | None
     responsible_user: UserBrief | None
     sender: str
@@ -28,8 +30,26 @@ class NotificationResponse(BaseModel):
         text = BeautifulSoup(self.html_content, "html.parser").get_text(separator=" ", strip=True)
         return text[:120] + ("…" if len(text) > 120 else "")
 
+    @computed_field
+    @property
+    def is_system_request(self) -> bool:
+        return bool(self.title) and "CODE:843" in self.title
+
+    @computed_field
+    @property
+    def request_note_id(self) -> int | None:
+        match = NOTE_LINK_RE.search(self.html_content)
+        return int(match.group(1)) if match else None
+
+    @computed_field
+    @property
+    def request_edit_mode(self) -> bool:
+        return bool(self.title) and "редактирование" in self.title
+
+    requester_user_id: int | None = None
+    access_granted: bool = False
+
 class NotificationCreate(BaseModel):
-    notification_type: NotificationTypes = NotificationTypes.TASK_CREATED
     sender: str
     title: str | None
     html_content: str

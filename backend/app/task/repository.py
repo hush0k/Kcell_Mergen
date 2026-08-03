@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import and_, func, or_, select, text, not_
+from sqlalchemy import and_, func, or_, select, text, not_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, joinedload, Query
 
@@ -81,7 +81,16 @@ class TaskRepository:
             .load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
             joinedload(Task.user).load_only(User.id, User.username, User.first_name, User.last_name, User.is_og),
         ]
-        base_order = [Control.name.desc(), Task.created_at.desc()]
+
+        status_order = case(
+            (Task.status == TaskStatus.OVERDUE, 3),
+            (Task.status == TaskStatus.NOT_STARTED, 2),
+            (Task.status == TaskStatus.IN_PROGRESS, 1),
+            (Task.status == TaskStatus.COMPLETED, 0),
+            else_=99,
+        )
+
+        base_order = [status_order, Control.name.desc(),  Task.created_at.desc()]
 
         if current_user is None or current_user.role == UserRoles.ADMIN:
             where = [Control.status == ControlStatus.ACTIVE]

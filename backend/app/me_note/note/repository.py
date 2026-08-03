@@ -6,9 +6,10 @@ from sqlalchemy.orm import joinedload
 
 from app.me_note.note.model import MeNote, MeNoteLink, Tags
 from app.me_note.note.schemas import MeNoteUpdate, MeNoteListResponse, MeNoteWithAll
+from app.user.enums import UserRoles
 from app.user.model import User
 
-LOCK_TTL_MINUTES = 2
+LOCK_TTL_MINUTES = 1
 
 
 class MeNoteRepository:
@@ -81,15 +82,26 @@ class MeNoteRepository:
             await self.db.delete(note)
         await self.db.commit()
 
-    async def list_notes(self, offset: int = 0, limit: int = 0) -> MeNoteListResponse:
+    async def list_notes(self, current_user_id: int, offset: int = 0, limit: int = 0) -> MeNoteListResponse:
         total = await self.db.scalar(select(func.count()).select_from(MeNote))
-        notes = await self.db.execute(
-            select(MeNote)
-            .options(joinedload(MeNote.tags))
-            .order_by(MeNote.updated_at.desc())
-            .offset(offset)
-            .limit(limit)
-        )
+        user = await self.db.get(User, current_user_id)
+        if user.role == UserRoles.ADMIN:
+            notes = await self.db.execute(
+                select(MeNote)
+                .options(joinedload(MeNote.tags))
+                .order_by(MeNote.updated_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+        else:
+            notes = await self.db.execute(
+                select(MeNote)
+                .options(joinedload(MeNote.tags))
+                .where(MeNote.can_read.any(User.id == current_user_id))
+                .order_by(MeNote.updated_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
         list_note = list(notes.scalars().unique().all())
         for note in list_note:
             await self._release_if_expired(note)
@@ -104,6 +116,8 @@ class MeNoteRepository:
                 joinedload(MeNote.last_modifier),
                 joinedload(MeNote.editor),
                 joinedload(MeNote.tags),
+                joinedload(MeNote.can_edit),
+                joinedload(MeNote.can_read),
             )
             .where(MeNote.id == note_id)
         )
@@ -162,4 +176,42 @@ class MeNoteRepository:
     async def get_all_nodes(self) -> list[MeNote]:
         result = await self.db.execute(select(MeNote))
         return list(result.scalars().all())
+
+
+    async def give_reader_root(self, note: MeNote, user_id: int) -> MeNote:
+        if user_id not in {user.id for user in note.can_read}:
+            target_user = await self.db.get(User, user_id)
+            note.can_read.append(target_user)
+        await self.db.commit()
+        await self.db.refresh(note)
+
+        return note
+
+    async def give_editor_root(self, note: MeNote, user_id: int) -> MeNote:
+        target_user = None
+        if user_id not in {user.id for user in note.can_edit}:
+            target_user = await self.db.get(User, user_id)
+            note.can_edit.append(target_user)
+        if user_id not in {user.id for user in note.can_read}:
+            target_user = target_user or await self.db.get(User, user_id)
+            note.can_read.append(target_user)
+        await self.db.commit()
+        await self.db.refresh(note)
+
+        return note
+
+    async def remove_reader_root(self, note: MeNote, user_id: int) -> MeNote:
+        note.can_read = [user for user in note.can_read if user.id != user_id]
+        note.can_edit = [user for user in note.can_edit if user.id != user_id]
+        await self.db.commit()
+        await self.db.refresh(note)
+
+        return note
+
+    async def remove_editor_root(self, note: MeNote, user_id: int) -> MeNote:
+        note.can_edit = [user for user in note.can_edit if user.id != user_id]
+        await self.db.commit()
+        await self.db.refresh(note)
+
+        return note
 

@@ -58,11 +58,11 @@ async def delete_notes(
 @router.get("/", response_model=MeNoteListResponse)
 async def list_notes(
         service: ServiceDep,
-        _: CurrentUser,
+        current_user: CurrentUser,
         page: int = 1,
         per_page: int = 20,
 ) -> MeNoteListResponse:
-    return await service.get_all_notes(page, per_page)
+    return await service.get_all_notes(page, per_page, current_user)
 
 @router.get("/search", response_model=list[MeNoteSearchResult])
 async def search_notes(
@@ -92,9 +92,9 @@ async def get_backlinks(
 async def get_note(
         service: ServiceDep,
         note_id: int,
-        _: CurrentUser
+        current_user: CurrentUser
 )-> MeNoteWithAll:
-    return await service.get_note(note_id)
+    return await service.get_note(note_id, current_user)
 
 @router.patch("/{note_id}/start-edit", status_code=status.HTTP_204_NO_CONTENT)
 async def start_editing(
@@ -111,6 +111,43 @@ async def stop_editing(
         current_user: CurrentUser
 ) -> None:
     await service.stop_editing(note_id, current_user)
+
+
+@router.patch("/{note_id}/give-reader-root", response_model=MeNoteWithAll)
+async def give_reader_root(
+        service: ServiceDep,
+        note_id: int,
+        user_id: int,
+        current_user: CurrentUser
+) -> MeNote:
+    return await service.give_reader_root(note_id, user_id, current_user)
+
+@router.patch("/{note_id}/give-editor-root", response_model=MeNoteWithAll)
+async def give_editor_root(
+        service: ServiceDep,
+        note_id: int,
+        user_id: int,
+        current_user: CurrentUser
+) -> MeNote:
+    return await service.give_editor_root(note_id, user_id, current_user)
+
+@router.delete("/{note_id}/reader-root", response_model=MeNoteWithAll)
+async def remove_reader_root(
+        service: ServiceDep,
+        note_id: int,
+        user_id: int,
+        current_user: CurrentUser
+) -> MeNote:
+    return await service.remove_reader_root(note_id, user_id, current_user)
+
+@router.delete("/{note_id}/editor-root", response_model=MeNoteWithAll)
+async def remove_editor_root(
+        service: ServiceDep,
+        note_id: int,
+        user_id: int,
+        current_user: CurrentUser
+) -> MeNote:
+    return await service.remove_editor_root(note_id, user_id, current_user)
 
 @router.websocket("/ws")
 async def websocket_endpoint(
