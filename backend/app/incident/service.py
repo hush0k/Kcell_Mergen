@@ -21,25 +21,12 @@ ALLOWED_TRANSITIONS: dict[IncidentStatus, set[IncidentStatus]] = {
 
 
 class IncidentService:
-    """Сервис для управления инцидентами. Содержит бизнес-логику и делегирует работу с БД в репозиторий."""
-
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = IncidentRepository(db)
         self.task_repo = TaskRepository(db)
 
     async def get_incident_by_id(self, incident_id: int) -> Incident:
-        """Возвращает инцидент по его ID.
-
-        Args:
-            incident_id: ID искомого инцидента.
-
-        Returns:
-            Найденный объект инцидента.
-
-        Raises:
-            HTTPException: 404, если инцидент не найден.
-        """
         incident = await self.repo.get_by_id(incident_id)
         if not incident:
             raise HTTPException(
@@ -48,34 +35,12 @@ class IncidentService:
         return incident
 
     async def get_incidents(self, page: int = 1, limit: int = 20) -> list[Incident]:
-        """Возвращает список всех инцидентов с пагинацией (сортировка по id убыв.).
-
-        Args:
-            page: Номер страницы. По умолчанию — 1.
-            limit: Количество записей на странице. По умолчанию — 20.
-
-        Returns:
-            Список объектов инцидентов.
-        """
         offset = (page - 1) * limit
         return await self.repo.get_all(offset, limit)
 
     async def create_incident(
         self, incident_in: IncidentCreate, current_user: User
     ) -> Incident:
-        """Создаёт инцидент. Разрешено только для завершённого таска. Автор берётся из токена.
-
-        Args:
-            incident_in: Данные для создания инцидента.
-            current_user: Текущий авторизованный пользователь (становится автором).
-
-        Returns:
-            Созданный объект инцидента.
-
-        Raises:
-            HTTPException: 404, если таск не найден.
-            HTTPException: 400, если таск не в статусе «завершён».
-        """
         task = await self.task_repo.get_by_id(incident_in.task_id)
         if not task:
             raise HTTPException(
@@ -91,21 +56,6 @@ class IncidentService:
     async def update_incident(
         self, incident_id: int, incident_in: IncidentUpdate, current_user: User
     ) -> Incident:
-        """Редактирует поля инцидента. Доступно админу или автору, и только в статусе «Открыт».
-
-        Args:
-            incident_id: ID инцидента.
-            incident_in: Новые данные для обновления.
-            current_user: Текущий авторизованный пользователь.
-
-        Returns:
-            Обновлённый объект инцидента.
-
-        Raises:
-            HTTPException: 404, если инцидент не найден.
-            HTTPException: 403, если пользователь не админ и не автор.
-            HTTPException: 400, если инцидент не в статусе «Открыт».
-        """
         incident = await self.get_incident_by_id(incident_id)
         self._check_author_or_admin(incident, current_user)
 
@@ -119,24 +69,6 @@ class IncidentService:
     async def change_status(
         self, incident_id: int, new_status: IncidentStatus, current_user: User
     ) -> Incident:
-        """Меняет статус инцидента по правилам согласования.
-
-        Открыт → На согласовании: автор или админ.
-        На согласовании → Согласован/Отклонён: только админ.
-
-        Args:
-            incident_id: ID инцидента.
-            new_status: Новый статус.
-            current_user: Текущий авторизованный пользователь.
-
-        Returns:
-            Обновлённый объект инцидента.
-
-        Raises:
-            HTTPException: 404, если инцидент не найден.
-            HTTPException: 400, если переход статуса недопустим.
-            HTTPException: 403, если недостаточно прав для перехода.
-        """
         incident = await self.get_incident_by_id(incident_id)
         is_admin = current_user.role == UserRoles.ADMIN
 
@@ -161,14 +93,6 @@ class IncidentService:
         return await self.repo._save_incident(incident)
 
     async def delete_incident(self, incident_id: int) -> None:
-        """Удаляет инцидент по его ID.
-
-        Args:
-            incident_id: ID инцидента.
-
-        Raises:
-            HTTPException: 404, если инцидент не найден.
-        """
         incident = await self.get_incident_by_id(incident_id)
         await self.repo.delete(incident)
 
