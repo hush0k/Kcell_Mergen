@@ -67,41 +67,46 @@ export function AdminUserDocumentsTable({ user, onTotalChange }: Props) {
     useEffect(() => {
         const controller = new AbortController();
         setLoading(true);
-
+        console.log("first pointer")
         api.meNote.list({ page, per_page: PAGE_SIZE }, { signal: controller.signal })
             .then(res => {
                 setItems(prev => {
                     const merged = page === 1
                         ? res.list
                         : [...prev, ...res.list.filter(note => !prev.some(item => item.id === note.id))];
+                    console.log("accepted pointer")
                     return sortDocuments(merged, user.id);
                 });
                 setHasMore(res.list.length === PAGE_SIZE);
                 onTotalChange?.(res.total);
             })
             .catch(err => {
+                console.log("error pointer");
                 if (err.name !== "AbortError") console.error(err);
             })
             .finally(() => {
+                console.log("finally");
                 if (!controller.signal.aborted) setLoading(false);
             });
 
         return () => controller.abort();
     }, [page, user.id, onTotalChange]);
 
+    console.log(items)
+
     useEffect(() => {
         const el = sentinelRef.current;
         if (!el) return;
 
         const observer = new IntersectionObserver(([entry]) => {
-            if (entry.isIntersecting && hasMore && !loading) {
+            if (entry.isIntersecting && hasMore && !loading && items.length > 0) {
                 setPage(p => p + 1);
             }
         }, { threshold: 0.1 });
 
         observer.observe(el);
         return () => observer.disconnect();
-    }, [hasMore, loading]);
+    }, [hasMore, loading, items.length]);
 
     const updateNote = useCallback((noteId: number, nextNote: MeNoteResponse) => {
         setItems(prev => prev.map(note => note.id === noteId ? nextNote : note));

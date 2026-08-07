@@ -92,7 +92,8 @@ class MeNoteRepository:
         )
         if user.role != UserRoles.ADMIN:
             base_query = base_query.where(MeNote.can_read.any(User.id == current_user_id))
-
+        bq = await self.db.execute(base_query)
+        print(len(list(bq.scalars().unique().all())))
         notes = await self.db.execute(
             base_query.order_by(MeNote.updated_at.desc()).offset(offset).limit(limit)
         )
@@ -107,11 +108,19 @@ class MeNoteRepository:
                 .values(is_editing=False, editor_id=None, editing_started_at=None)
             )
             await self.db.commit()
-            for n in list_note:
-                if n.id in expired_ids:
-                    n.is_editing = False
-                    n.editor_id = None
-                    n.editing_started_at = None
+
+            refreshed = await self.db.execute(
+                select(MeNote)
+                .options(
+                    joinedload(MeNote.tags),
+                    joinedload(MeNote.can_edit),
+                    joinedload(MeNote.can_read),
+                )
+                .where(MeNote.id.in_([n.id for n in list_note]))
+            )
+            refreshed_notes = {n.id: n for n in refreshed.scalars().unique().all()}
+
+            list_note = [refreshed_notes[n.id] for n in list_note if n.id in refreshed_notes]
 
         return MeNoteListResponse(total=total, list=list_note, offset=offset, limit=limit)
 
