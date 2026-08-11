@@ -83,6 +83,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+.claude
+backend/storage
 
 # PyBuilder
 .pybuilder/
