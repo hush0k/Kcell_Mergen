@@ -73,6 +73,9 @@ export const apiEndpoints = {
         giveEditorRoot: (id: number) => `/me-note/${id}/give-editor-root`,
         removeReaderRoot: (id: number) => `/me-note/${id}/reader-root`,
         removeEditorRoot: (id: number) => `/me-note/${id}/editor-root`,
+        attachments: (noteId: number) => `/me-note/${noteId}/attachments/`,
+        attachmentFile: (noteId: number, attachmentId: number) => `/me-note/${noteId}/attachments/${attachmentId}/file`,
+        attachmentById: (noteId: number, attachmentId: number) => `/me-note/${noteId}/attachments/${attachmentId}`,
     },
     directory: {
         root: "/directory/",

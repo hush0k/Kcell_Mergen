@@ -15,6 +15,7 @@ from app.me_note.note.listener import pg_notify_me_note_listener
 from app.me_note.note.ttl_sweeper import me_note_ttl_sweeper
 from app.me_note.note.router import router as me_note_router
 from app.me_note.directory.directory_router import router as directory_router
+from app.me_note.attachments.router import router as attachments_router
 from app.mfs.router import router as mfs_router
 from app.notification.listener import pg_notify_listener
 from app.notification.router import router as notification_router
@@ -63,6 +64,7 @@ app.include_router(atlas_router)
 app.include_router(notification_router)
 app.include_router(me_note_router)
 app.include_router(directory_router)
+app.include_router(attachments_router)
 
 
 @app.get("/api/public/config")

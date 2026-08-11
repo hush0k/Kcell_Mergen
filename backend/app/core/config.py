@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     MFS_DATABASE_URL: str
     MFS_BLACKLIST_AUTHOR: str = "app_fraud"
 
-    ATTACHMENTS_DIR: Path = BASE_DIR / "storage" / "attachments"
+    ATTACHMENTS_DIR: Path = Path(BASE_DIR, "storage", "attachments")
 
     # Atlas (CODA) — сторонний сервис, переподключается независимо от MFS.
     ATLAS_API_BASE_URL: str = "https://atlas-customers-api.atlas.kcell.kz"
@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     ATLAS_REQUEST_TIMEOUT: int = 60
     ATLAS_GET_CLNT_FN: str = "get_clnt_by_msisdn"
     ATLAS_GET_CLNT_SCHEMA: str = "app_fraud"
+
+    @property
+    def BASE_DIR(self) -> Path:
+        return BASE_DIR
 
     @property
     def database_url(self) -> str:

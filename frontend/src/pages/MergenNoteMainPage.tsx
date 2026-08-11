@@ -6,6 +6,7 @@ import { ViewMod } from "@/features/note_home/components/ViewMod";
 import { EmptyNoteState } from "@/features/note_home/components/EmptyNoteState";
 import { NoAccessState } from "@/features/note_home/components/NoAccessState";
 import { PeopleSettings } from "@/features/note_home/components/PeopleSettings";
+import { AttachmentsPanel } from "@/features/note_home/components/AttachmentsPanel";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { RiEdit2Fill, RiSaveLine } from "react-icons/ri";
@@ -192,17 +193,31 @@ export function MergenNoteMainPage() {
                 </div>
             )}
 
-            <div className={selectedFileId ? "pl-36 pr-64 flex-1 min-h-0 pb-16" : "h-full"}>
-                {selectedFileId ? (
-                    accessDenied ? (
-                        <NoAccessState detail={accessDenied} />
-                    ) : isEditing ? (
-                        <EditMod ref={editModRef} key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
+            <div className={selectedFileId ? "flex flex-row flex-1 min-h-0" : "h-full"}>
+                <div className={selectedFileId ? "pl-36 pr-16 flex-1 min-h-0 overflow-y-auto pb-16" : "h-full w-full"}>
+                    {selectedFileId ? (
+                        accessDenied ? (
+                            <NoAccessState detail={accessDenied} />
+                        ) : isEditing ? (
+                            <EditMod ref={editModRef} key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
+                        ) : (
+                            <ViewMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
+                        )
                     ) : (
-                        <ViewMod key={selectedFileId} noteId={selectedFileId} onStatsChange={setStats} />
-                    )
-                ) : (
-                    <EmptyNoteState />
+                        <EmptyNoteState />
+                    )}
+                </div>
+
+                {selectedFileId && !accessDenied && note && (
+                    <div className="w-72 shrink-0 border-l border-nt-outline-variant bg-nt-surface min-h-0 overflow-hidden">
+                        <AttachmentsPanel
+                            noteId={selectedFileId}
+                            canEdit={
+                                currentUser?.role === "ADMIN" ||
+                                note.can_edit.some((u) => u.id === currentUser?.id)
+                            }
+                        />
+                    </div>
                 )}
             </div>
 

@@ -393,3 +393,12 @@ export interface DirectoryListResponse {
     limit: number;
     total: number;
 }
+
+export interface AttachmentResponse {
+    id: number;
+    note_id: number;
+    path: string;
+    original_name: string;
+    mime_type: string;
+    size_bytes: number;
+}

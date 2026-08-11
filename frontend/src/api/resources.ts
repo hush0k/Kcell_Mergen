@@ -1,5 +1,6 @@
-import { apiRequest } from "@/api/client";
+import { apiRequest, ApiError } from "@/api/client";
 import { apiEndpoints } from "@/api/endpoints";
+import { API_URL } from "@/api/config";
 import { tokenStorage } from "@/api/token-storage";
 import type {
     ApiRecord,
@@ -33,7 +34,8 @@ import type {
     DirectoryCreate,
     DirectoryUpdate,
     DirectoryListResponse,
-    DirectoryWithFilesResponse
+    DirectoryWithFilesResponse,
+    AttachmentResponse
 } from "@/types/api";
 import type {
   VacationScheduleCreate,
@@ -319,6 +321,39 @@ export const api = {
             apiRequest<MeNoteWithAll>(`${apiEndpoints.meNote.removeReaderRoot(Number(id))}?user_id=${userId}`, { method: "DELETE" }),
         removeEditorRoot: (id: Id, userId: Id) =>
             apiRequest<MeNoteWithAll>(`${apiEndpoints.meNote.removeEditorRoot(Number(id))}?user_id=${userId}`, { method: "DELETE" }),
+        attachments: {
+            list: (noteId: Id, opts?: { signal?: AbortSignal }) =>
+                apiRequest<AttachmentResponse[]>(apiEndpoints.meNote.attachments(Number(noteId)), { signal: opts?.signal }),
+            upload: (noteId: Id, files: File[]) => {
+                const formData = new FormData();
+                files.forEach((file) => formData.append("files", file));
+                return apiRequest<AttachmentResponse[]>(apiEndpoints.meNote.attachments(Number(noteId)), {
+                    method: "POST",
+                    body: formData,
+                });
+            },
+            remove: (noteId: Id, attachmentId: Id) =>
+                apiRequest<null>(apiEndpoints.meNote.attachmentById(Number(noteId), Number(attachmentId)), { method: "DELETE" }),
+            // Fetches the file as a blob (with auth header) and opens it in a new tab for inline preview,
+            // avoiding both a download prompt and an unauthenticated direct link.
+            openFile: async (noteId: Id, attachmentId: Id) => {
+                const accessToken = tokenStorage.getAccessToken();
+                const response = await fetch(
+                    `${API_URL}${apiEndpoints.meNote.attachmentFile(Number(noteId), Number(attachmentId))}`,
+                    {
+                        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+                    },
+                );
+                if (!response.ok) {
+                    throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                window.open(url, "_blank", "noopener,noreferrer");
+                // Revoke after a delay to give the new tab time to load the resource.
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            },
+        },
     },
     directory: {
         list: (
