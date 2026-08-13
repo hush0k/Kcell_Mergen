@@ -35,7 +35,9 @@ import type {
     DirectoryUpdate,
     DirectoryListResponse,
     DirectoryWithFilesResponse,
-    AttachmentResponse
+    AttachmentResponse,
+    Tele2Response,
+    Tele2LogList,
 } from "@/types/api";
 import type {
   VacationScheduleCreate,
@@ -226,6 +228,45 @@ export const api = {
         method: "POST",
         body: payload,
       }),
+  },
+  tele2: {
+    list: (
+      params?: { page?: number; limit?: number },
+      opts?: { signal?: AbortSignal },
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", String(params?.page ?? 1));
+      searchParams.set("limit", String(params?.limit ?? 20));
+
+      return apiRequest<Tele2LogList>(
+        `${apiEndpoints.tele2.root}?${searchParams.toString()}`,
+        { signal: opts?.signal },
+      );
+    },
+    create: (payload: { numbers: string }) =>
+      apiRequest<Tele2Response>(apiEndpoints.tele2.root, {
+        method: "POST",
+        body: payload,
+      }),
+    // Fetches the generated file as a blob (with auth header) and triggers a browser download.
+    download: async (id: number, filename?: string) => {
+      const accessToken = tokenStorage.getAccessToken();
+      const response = await fetch(`${API_URL}${apiEndpoints.tele2.download(id)}`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+      if (!response.ok) {
+        throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename ?? `tele2_${id}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    },
   },
   notifications: {
     list: (

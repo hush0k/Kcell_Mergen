@@ -4,6 +4,7 @@ import { HomePage } from "@/pages/HomePage"
 import { ControllerPage } from "@/pages/ControllerPage"
 import { IncidentsPage } from "@/pages/IncidentsPage"
 import { MfsPage } from "@/pages/MfsPage"
+import { Tele2Page } from "@/pages/Tele2Page"
 import { NotificaitonsPage } from "@/pages/NotificaitonsPage"
 import { ReportsPage } from "@/pages/ReportsPage"
 import { VacationPage } from "@/pages/VacationPage"
@@ -30,6 +31,7 @@ export function App() {
                     <Route path="/home" element={<HomePage />} />
                     <Route path="/incidents" element={<IncidentsPage />} />
                     <Route path="/mfs" element={<MfsPage />} />
+                    <Route path="/tele2" element={<Tele2Page />} />
                     <Route path="/notifications" element={<NotificaitonsPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
                     <Route path="/vacation" element={<VacationPage />} />

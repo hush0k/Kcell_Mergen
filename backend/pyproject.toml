@@ -24,6 +24,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "python-magic>=0.4.27",
     "aiofiles>=25.1.0",
+    "asyncssh>=2.24.0",
 ]
 
 [dependency-groups]

@@ -14,6 +14,7 @@ import app.user.model  # noqa: F401
 import app.vacation_schedule.model  # noqa: F401
 import app.notification.model  # noqa: F401
 import app.me_note.note.model  # noqa: F401
+import app.tele2.model  # noqa: F401
 from app.core.config import settings
 from app.db.database import Base
 

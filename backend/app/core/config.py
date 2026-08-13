@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     MFS_DATABASE_URL: str
     MFS_BLACKLIST_AUTHOR: str = "app_fraud"
 
+    SSH_HOST: str = ""
+    SSH_USERNAME: str = ""
+    SSH_REMOTE_DIR: str = ""
+    SSH_CLIENT_KEY_PATH: Path | None = None
+    SSH_KNOWN_HOSTS: Path | None = None
+    SSH_MOCK: bool = False
+
     ATTACHMENTS_DIR: Path = Path(BASE_DIR, "storage", "attachments")
 
     # Atlas (CODA) — сторонний сервис, переподключается независимо от MFS.

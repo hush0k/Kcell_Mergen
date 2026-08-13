@@ -46,6 +46,10 @@ export const apiEndpoints = {
     status: "/atlas/status",
     note: "/atlas/note",
   },
+  tele2: {
+    root: "/tele2/",
+    download: (id: number) => `/tele2/${id}/download`,
+  },
   notifications: {
     root: "/notifications",
     unreadCount: "/notifications/unread-count",

@@ -1,4 +1,4 @@
-import { FaTasks, FaClipboardList } from "react-icons/fa";
+import { FaTasks, FaClipboardList, FaSimCard } from "react-icons/fa";
 import { IoSettingsSharp } from "react-icons/io5";
 import { LuTriangleAlert } from "react-icons/lu";
 import { IoNotifications } from "react-icons/io5";
@@ -28,6 +28,7 @@ export function Sidebar() {
         { name: "Инциденты", icon: <LuTriangleAlert size={18}/>, isOpen: false, link: 'incidents' },
         { name: "Уведомление", icon: <IoNotifications size={18}/>, isOpen: false, link: 'notifications', statistics: unreadCount },
         { name: "МФС", icon: <FaClipboardList size={18}/>, isOpen: false, link: 'mfs' },
+        { name: "Tele2", icon: <FaSimCard size={18}/>, isOpen: false, link: 'tele2' },
         { name: "Отпуски", icon: <MdOutlineHolidayVillage size={18}/>, isOpen: false, link: 'vacation' },
         { name: "Отчеты", icon: <TbReportSearch size={18}/>, isOpen: false, link: 'reports' },
         ...(isAdminRole(me?.role)

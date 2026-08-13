@@ -330,6 +330,22 @@ export interface MeNoteListResponse {
     total: number;
 }
 
+export type Tele2LogStatus = "SUCCESS" | "ERROR" | "PENDING";
+
+export interface Tele2Response {
+    id: number;
+    numbers: string[];
+    name: string | null;
+    status: Tele2LogStatus;
+}
+
+export interface Tele2LogList {
+    log_list: Tele2Response[];
+    offset: number;
+    limit: number;
+    total: number;
+}
+
 export interface MeNoteAccessDeniedOwner {
     id: number;
     first_name: string | null;
