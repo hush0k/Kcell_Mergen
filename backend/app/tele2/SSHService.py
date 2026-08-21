@@ -18,8 +18,8 @@ class SSHService:
             self._conn = await asyncssh.connect(
                 host=settings.SSH_HOST,
                 username=settings.SSH_USERNAME,
-                client_keys=[str(settings.SSH_CLIENT_KEY_PATH)],
-                known_hosts=str(settings.SSH_KNOWN_HOSTS) if settings.SSH_KNOWN_HOSTS else None,
+                password=settings.SSH_PASSWORD,
+                known_hosts=None,
                 keepalive_interval=30,
             )
         return self._conn
@@ -32,8 +32,8 @@ class SSHService:
         async with asyncssh.connect(
             settings.SSH_HOST,
             username=settings.SSH_USERNAME,
-            client_keys=[str(settings.SSH_CLIENT_KEY_PATH)],
-            known_hosts=str(settings.SSH_KNOWN_HOSTS) if settings.SSH_KNOWN_HOSTS else None,
+            password=settings.SSH_PASSWORD,
+            known_hosts=None,
         ) as conn:
             result = await conn.run(command, check=True)
             return result.stdout
@@ -48,7 +48,8 @@ class SSHService:
         async with asyncssh.connect(
             settings.SSH_HOST,
             username=settings.SSH_USERNAME,
-            client_keys=[str(settings.SSH_CLIENT_KEY_PATH)],
+            password=settings.SSH_PASSWORD,
+            known_hosts=None,
         ) as conn:
             async with conn.start_sftp_client() as sftp:
                 await sftp.put(local_path, remote_path)
@@ -62,7 +63,8 @@ class SSHService:
         async with asyncssh.connect(
             settings.SSH_HOST,
             username=settings.SSH_USERNAME,
-            client_keys=[str(settings.SSH_CLIENT_KEY_PATH)],
+            password=settings.SSH_PASSWORD,
+            known_hosts=None,
         ) as conn:
             async with conn.start_sftp_client() as sftp:
                 await sftp.remove(remote_path)

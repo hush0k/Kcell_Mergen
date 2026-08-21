@@ -25,6 +25,37 @@ interface RequestOptions extends Omit<RequestInit, "body" | "method"> {
 
 const isFormData = (value: unknown): value is FormData => value instanceof FormData;
 
+interface FastApiValidationError {
+  loc: (string | number)[];
+  msg: string;
+  type: string;
+}
+
+function extractErrorMessage(payload: unknown, status: number): string {
+  if (typeof payload === "object" && payload !== null && "detail" in payload) {
+    const detail = (payload as { detail: unknown }).detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+
+    if (Array.isArray(detail)) {
+      const messages = (detail as FastApiValidationError[])
+        .map((err) => {
+          const field = Array.isArray(err.loc) ? err.loc.filter((p) => p !== "body").join(".") : "";
+          return field ? `${field}: ${err.msg}` : err.msg;
+        })
+        .filter(Boolean);
+
+      if (messages.length > 0) {
+        return messages.join("; ");
+      }
+    }
+  }
+
+  return `Request failed with status ${status}`;
+}
+
 async function parseResponse(response: Response) {
   if (response.status === 204) {
     return null;
@@ -117,13 +148,7 @@ export async function apiRequest<T>(
   const payload = await parseResponse(response);
 
   if (!response.ok) {
-    const message =
-      typeof payload === "object" &&
-      payload !== null &&
-      "detail" in payload &&
-      typeof payload.detail === "string"
-        ? payload.detail
-        : `Request failed with status ${response.status}`;
+    const message = extractErrorMessage(payload, response.status);
 
     throw new ApiError(message, response.status, payload);
   }

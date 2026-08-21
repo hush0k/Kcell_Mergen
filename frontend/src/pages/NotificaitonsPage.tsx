@@ -36,12 +36,13 @@ const formatDate = (iso: string) => {
 
 const SELECTED_NOTIFICATION_KEY = "notifications:selectedId";
 const SYSTEM_MARKER = "CODE:843";
+const INCIDENT_MARKER = "CODE:INC";
 
 const isSystemNotification = (item: NotificationRecipient) =>
-    !!item.notification.title?.includes(SYSTEM_MARKER);
+    !!item.notification.title?.includes(SYSTEM_MARKER) || !!item.notification.title?.includes(INCIDENT_MARKER);
 
 const stripSystemMarker = (title: string | null) =>
-    title?.replace(SYSTEM_MARKER, "").trim() ?? title;
+    title?.replace(SYSTEM_MARKER, "").replace(INCIDENT_MARKER, "").trim() ?? title;
 
 type NotificationsTab = "all" | "unread" | "system";
 
@@ -155,6 +156,21 @@ export function NotificaitonsPage() {
             await api.notifications.endNotificationTask(id);
             setNotification(prev =>
                 prev ? { ...prev, notification: { ...prev.notification, end_time: new Date().toISOString() } } : prev
+            );
+        } catch {
+            return;
+        }
+    };
+
+    const handleIncidentDecision = async (target: "Согласован" | "Отклонён") => {
+        if (!notification) return;
+        const incidentId = notification.notification.incident_id;
+        if (!incidentId) return;
+
+        try {
+            await api.incidents.updateStatus(incidentId, target);
+            setNotification(prev =>
+                prev ? { ...prev, notification: { ...prev.notification, incident_status: target } } : prev
             );
         } catch {
             return;
@@ -340,7 +356,31 @@ export function NotificaitonsPage() {
                                     </div>
                                 ) : null}
 
-                                {notification.notification.end_time ? (
+                                {notification.notification.is_incident_approval ? (
+                                    me?.role === "ADMIN" ? (
+                                        notification.notification.incident_status === "На согласовании" ? (
+                                            <div className={"absolute top-5 right-8 flex flex-row items-center space-x-2"}>
+                                                <Button
+                                                    text={"Отклонить"}
+                                                    variant={"danger"}
+                                                    size={"sm"}
+                                                    className={"w-auto h-auto"}
+                                                    onClick={() => { void handleIncidentDecision("Отклонён"); }}
+                                                />
+                                                <Button
+                                                    text={"Согласовать"}
+                                                    size={"sm"}
+                                                    className={"w-auto h-auto"}
+                                                    onClick={() => { void handleIncidentDecision("Согласован"); }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className={`absolute top-5 right-8 py-0.5 px-3 w-auto font-bold rounded-full ${notification.notification.incident_status === "Согласован" ? "bg-mg-completed-bg text-mg-completed-tx" : "bg-mg-danger-bg text-mg-danger-fg"}`}>
+                                                {notification.notification.incident_status}
+                                            </div>
+                                        )
+                                    ) : null
+                                ) : notification.notification.end_time ? (
                                     <Button
                                         text={"Завершено"}
                                         icon={<FaCheck />}

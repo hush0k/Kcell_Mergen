@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import settings
@@ -12,6 +12,7 @@ from app.incident.enums import ConfirmedFraud, IncidentStatus
 
 if TYPE_CHECKING:
     from app.task.model import Task
+    from app.user.model import User
 
 
 class Incident(Base, TimeStampMixin):
@@ -77,8 +78,22 @@ class Incident(Base, TimeStampMixin):
     task_id: Mapped[int | None] = mapped_column(
         ForeignKey(f"{settings.POSTGRES_SCHEMA}.task.id"), nullable=True
     )
+    approved_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey(f"{settings.POSTGRES_SCHEMA}.user.id", ondelete="SET NULL"), nullable=True
+    )
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     task: Mapped[Task | None] = relationship(
         back_populates="incidents", foreign_keys=[task_id], lazy="noload"
+    )
+    approved_by: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[approved_by_id], lazy="noload"
+    )
+    rejected_by: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[rejected_by_id], lazy="noload"
     )

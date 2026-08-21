@@ -23,8 +23,8 @@ export function Input({ id, placeholder, type, value, onChange, onKeyDown, error
     } ${className ?? ""}`;
 
     return (
-        <div className={`flex flex-col gap-1 ${containerClassName ?? ""}`}>
-            <div className="relative">
+        <div className={`flex flex-col gap-1 min-w-0 ${containerClassName ?? ""}`}>
+            <div className="relative w-full">
                 {icon && (
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-mg-text-3">
                         {icon}

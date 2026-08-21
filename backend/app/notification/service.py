@@ -1,16 +1,27 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import current_user
 
+if TYPE_CHECKING:
+    from app.incident.model import Incident as IncidentModel
+
 from app.me_note.note.model import MeNote
 from app.me_note.note.repository import MeNoteRepository
 from app.notification.connection_manager import manager
 from app.notification.model import Notification, NotificationRecipient
 from app.notification.repository import NotificationRepository
-from app.notification.schemas import NotificationRecipientResponse, UnreadCountResponse, NotificationCreate, NotificationsList, NOTE_LINK_RE
+from app.notification.schemas import (
+    NOTE_LINK_RE,
+    INCIDENT_LINK_RE,
+    NotificationCreate,
+    NotificationRecipientResponse,
+    NotificationsList,
+    UnreadCountResponse,
+)
 from app.user.model import User
 from app.user.repository import UserRepository
 
@@ -22,6 +33,8 @@ class NotificationService:
         self.user_repo = UserRepository(db)
 
     async def _attach_requester_user_id(self, notifications: list[Notification]) -> None:
+        await self._attach_incident_status(notifications)
+
         system_notifications = [n for n in notifications if n.title and "CODE:843" in n.title]
         if not system_notifications:
             return
@@ -58,6 +71,32 @@ class NotificationService:
                 n.access_granted = n.requester_user_id in {u.id for u in note.can_edit}
             else:
                 n.access_granted = n.requester_user_id in {u.id for u in note.can_read}
+
+    async def _attach_incident_status(self, notifications: list[Notification]) -> None:
+        from app.incident.model import Incident
+
+        incident_notifications = [n for n in notifications if n.title and "CODE:INC" in n.title]
+        if not incident_notifications:
+            return
+
+        incident_ids = {
+            int(match.group(1))
+            for n in incident_notifications
+            if (match := INCIDENT_LINK_RE.search(n.html_content))
+        }
+        if not incident_ids:
+            return
+        result = await self.repo.db.execute(
+            select(Incident.id, Incident.status).where(Incident.id.in_(incident_ids))
+        )
+        status_by_id = {iid: st for iid, st in result.all()}
+
+        for n in incident_notifications:
+            match = INCIDENT_LINK_RE.search(n.html_content)
+            if not match:
+                continue
+            status_val = status_by_id.get(int(match.group(1)))
+            n.incident_status = status_val.value if status_val is not None else None
 
     async def get_user_notifications(
             self, user_id: int, page: int, limit: int, is_read: bool | None = None
@@ -262,4 +301,82 @@ class NotificationService:
 
         return await self.repo.create(notification)
 
+    async def create_incident_approval_notification(self, incident: "IncidentModel") -> Notification:
+        admin_emails = await self.user_repo.get_admin_emails()
+        recipients = ";".join(admin_emails)
+
+        author = await self.user_repo.get_by_username(incident.username)
+        sender_email = author.email if author else incident.username
+
+        def row(label: str, value: object) -> str:
+            if value in (None, ""):
+                return ""
+            return f"""
+                <tr>
+                    <td style="padding:6px 10px;color:#6b7280;font-size:13px;white-space:nowrap;vertical-align:top;">{label}</td>
+                    <td style="padding:6px 10px;color:#111827;font-size:13px;">{value}</td>
+                </tr>
+            """
+
+        rows = "".join([
+            row("Наименование", incident.incident_name),
+            row("Статус", incident.status.value if incident.status else ""),
+            row("Автор", incident.username),
+            row("Тип контроля", incident.control_type),
+            row("Подтип контроля", incident.control_subtype),
+            row("Риск", incident.risk),
+            row("Категория", incident.category),
+            row("Область проблемы", incident.problem_area),
+            row("Источник обнаружения", incident.detected_source),
+            row("Отчётный месяц", incident.reporting_month),
+            row("Дата возникновения", incident.occurrence_date),
+            row("Дата решения", incident.solution_date),
+            row("Дата закрытия", incident.close_date),
+            row("Описание", incident.description),
+            row("Принятые меры", incident.taken_measures),
+            row("Первопричина", incident.root_cause),
+            row("Оценочные потери", incident.estimated_loss),
+            row("Упущенная выгода", incident.opportunity_loss),
+            row("Безнадёжный долг", incident.bad_debt),
+            row("Предотвращённая экономия", incident.prevented_savings),
+            row("Возмещённая экономия", incident.recovered_savings),
+            row("Перерасход", incident.overchange),
+            row("Затронутая услуга", incident.service_abused),
+            row("Кол-во мошеннических номеров", incident.count_fraudulent_numbers),
+            row("Тип кейса", incident.case_type),
+            row("Расчёт KPI", incident.kpi_calculation),
+            row("Подтверждённое мошенничество", incident.confirmed_fraud.value if incident.confirmed_fraud else None),
+        ])
+
+        html_content = f"""
+            <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 640px; margin: 0 auto; background: #f4f6f8; padding: 24px;">
+              <div style="background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                  <div style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></div>
+                  <span style="font-size: 13px; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">Требуется согласование инцидента</span>
+                </div>
+
+                <h2 style="margin: 0 0 4px; font-size: 18px; color: #111827;">{incident.incident_name or f"Инцидент #{incident.id}"}</h2>
+                <p style="margin: 0 0 16px; font-size: 13px; color: #9ca3af;">
+                  Инцидент <a href="/incidents/{incident.id}" style="color:#2563eb;text-decoration:none;">#{incident.id}</a> отправлен на согласование пользователем <strong>{incident.username}</strong>
+                </p>
+
+                <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;">
+                  {rows}
+                </table>
+
+                <p style="margin: 16px 0 0; font-size: 12px; color: #9ca3af;">CODE:INC</p>
+              </div>
+            </div>
+        """
+
+        notification = NotificationCreate(
+            sender=sender_email,
+            title=f"Согласование инцидента: {(incident.incident_name or f'#{incident.id}')[:50]} CODE:INC",
+            html_content=html_content,
+            error_message=None,
+            recipients_email=recipients,
+        )
+
+        return await self.repo.create(notification)
 

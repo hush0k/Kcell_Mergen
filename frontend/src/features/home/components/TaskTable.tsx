@@ -7,6 +7,8 @@ import { BiSolidShow } from "react-icons/bi";
 import { BiErrorAlt } from "react-icons/bi";
 import { renderTime, calculateTime, diffMinutes } from "@/features/home/hooks/CalulateTime";
 import { BsEmojiExpressionless, BsEmojiSmile, BsEmojiGrin, BsEmojiFrown} from "react-icons/bs";
+import { Modal } from "@/components/Modal";
+import { CreateIncidentPopup } from "@/features/incidents/components/CreateIncidentPopup";
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +37,7 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
     const [loading, setLoading] = useState(false);
     const sentinelRef = useRef<HTMLDivElement>(null);
     const mountedRef = useRef(true);
+    const [incidentTask, setIncidentTask] = useState<TaskWithControl | null>(null);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -166,7 +169,12 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                         </td>
                         <td className="px-3.5 py-2.5">
                             <div className="flex gap-1.5 " onClick={(e) => e.stopPropagation()}>
-                                <Button icon={<BiErrorAlt size={16}/>} variant="outline" className="p-1.5"/>
+                                <Button
+                                    icon={<BiErrorAlt size={16}/>}
+                                    variant="outline"
+                                    className="p-1.5"
+                                    onClick={() => setIncidentTask(item)}
+                                />
                                 <Button
                                     icon={
                                         item.status === "COMPLETED" ? <BsEmojiGrin size={16} className="text-mg-completed-tx" /> :
@@ -196,6 +204,20 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                     Загрузка...
                 </div>
             )}
+            <Modal
+                isOpen={incidentTask !== null}
+                onClose={() => setIncidentTask(null)}
+                className="w-[58rem] max-w-[90vw]"
+            >
+                {incidentTask !== null && (
+                    <CreateIncidentPopup
+                        taskId={incidentTask.id}
+                        task={incidentTask}
+                        onClose={() => setIncidentTask(null)}
+                        onSaved={() => setIncidentTask(null)}
+                    />
+                )}
+            </Modal>
         </div>
     );
 }

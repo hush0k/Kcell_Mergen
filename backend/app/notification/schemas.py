@@ -8,6 +8,7 @@ from app.notification.enums import NotificationTypes
 from app.user.schemas import UserBrief
 
 NOTE_LINK_RE = re.compile(r"/me-notes/(\d+)")
+INCIDENT_LINK_RE = re.compile(r"/incidents/(\d+)")
 
 
 class NotificationResponse(BaseModel):
@@ -46,8 +47,20 @@ class NotificationResponse(BaseModel):
     def request_edit_mode(self) -> bool:
         return bool(self.title) and "редактирование" in self.title
 
+    @computed_field
+    @property
+    def is_incident_approval(self) -> bool:
+        return bool(self.title) and "CODE:INC" in self.title
+
+    @computed_field
+    @property
+    def incident_id(self) -> int | None:
+        match = INCIDENT_LINK_RE.search(self.html_content)
+        return int(match.group(1)) if match else None
+
     requester_user_id: int | None = None
     access_granted: bool = False
+    incident_status: str | None = None
 
 class NotificationCreate(BaseModel):
     sender: str

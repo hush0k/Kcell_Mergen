@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
+from app.incident.enums import IncidentStatus
 from app.incident.model import Incident
 from app.incident.schemas import (
     IncidentCreate,
@@ -36,8 +37,10 @@ async def get_incidents(
     _: CurrentUser,
     page: int = 1,
     limit: int = 20,
+    status: IncidentStatus | None = None,
+    case_type: str | None = None,
 ) -> list[Incident]:
-    return await service.get_incidents(page, limit)
+    return await service.get_incidents(page, limit, status, case_type)
 
 
 @router.get("/{incident_id}", response_model=IncidentResponse)

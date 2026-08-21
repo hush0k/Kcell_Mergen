@@ -227,6 +227,9 @@ export interface NotificationResponse {
     request_edit_mode: boolean;
     requester_user_id: number | null;
     access_granted: boolean;
+    is_incident_approval: boolean;
+    incident_id: number | null;
+    incident_status: IncidentStatus | null;
 }
 
 export interface NotificationRecipient {
@@ -417,4 +420,60 @@ export interface AttachmentResponse {
     original_name: string;
     mime_type: string;
     size_bytes: number;
+}
+
+export type IncidentStatus = "Открыт" | "На согласовании" | "Согласован" | "Отклонён";
+export type ConfirmedFraud = "Да" | "Нет";
+
+export interface IncidentBase {
+    control_type: string;
+    control_subtype: string;
+    detected_source: string;
+    reporting_month: string;
+    occurrence_date: string;
+    case_type: string;
+    incident_name: string;
+    description: string;
+    risk?: string | null;
+    category?: string | null;
+    problem_area?: string | null;
+    solution_date?: string | null;
+    close_date?: string | null;
+    taken_measures?: string | null;
+    root_cause?: string | null;
+    estimated_loss?: number | string | null;
+    opportunity_loss?: number | string | null;
+    bad_debt?: number | string | null;
+    prevented_savings?: number | string | null;
+    recovered_savings?: number | string | null;
+    overchange?: number | string | null;
+    kpi_calculation?: number | string | null;
+    service_abused?: string | null;
+    count_fraudulent_numbers?: number | null;
+    confirmed_fraud?: string | null;
+}
+
+export interface IncidentCreate extends IncidentBase {
+    task_id: Id;
+    status?: IncidentStatus;
+}
+
+export type IncidentUpdate = Partial<IncidentBase>;
+
+export interface IncidentStatusUpdate {
+    status: IncidentStatus;
+}
+
+export interface IncidentResponse extends IncidentBase {
+    id: Id;
+    username: string;
+    task_id: Id | null;
+    status: IncidentStatus;
+    attachment: string | null;
+    created_at: IsoDateTime;
+    updated_at: IsoDateTime;
+    approved_by_id: Id | null;
+    approved_at: IsoDateTime | null;
+    rejected_by_id: Id | null;
+    rejected_at: IsoDateTime | null;
 }

@@ -86,5 +86,9 @@ class IncidentResponse(IncidentBase):
     attachment: str | None
     created_at: datetime
     updated_at: datetime
+    approved_by_id: int | None = None
+    approved_at: datetime | None = None
+    rejected_by_id: int | None = None
+    rejected_at: datetime | None = None
 
     model_config = {"from_attributes": True}

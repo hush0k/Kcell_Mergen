@@ -38,6 +38,10 @@ import type {
     AttachmentResponse,
     Tele2Response,
     Tele2LogList,
+    IncidentResponse,
+    IncidentCreate,
+    IncidentUpdate,
+    IncidentStatus,
 } from "@/types/api";
 import type {
   VacationScheduleCreate,
@@ -205,11 +209,26 @@ export const api = {
       apiRequest<null>(apiEndpoints.vacationSchedule.byId(id), { method: "DELETE" }),
   },
   incidents: {
-    ...crud<ApiRecord>(apiEndpoints.incidents.root, apiEndpoints.incidents.byId),
-    updateStatus: (id: Id, payload: ApiRecord) =>
-      apiRequest<ApiRecord>(apiEndpoints.incidents.status(id), {
+    ...crud<IncidentResponse, IncidentCreate, IncidentUpdate>(apiEndpoints.incidents.root, apiEndpoints.incidents.byId),
+    list: (
+      params?: { page?: number; limit?: number; status?: IncidentStatus; case_type?: string },
+      opts?: { signal?: AbortSignal },
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", String(params?.page ?? 1));
+      searchParams.set("limit", String(params?.limit ?? 20));
+      if (params?.status) searchParams.set("status", params.status);
+      if (params?.case_type) searchParams.set("case_type", params.case_type);
+
+      return apiRequest<IncidentResponse[]>(
+        `${apiEndpoints.incidents.root}?${searchParams.toString()}`,
+        { signal: opts?.signal },
+      );
+    },
+    updateStatus: (id: Id, status: IncidentStatus) =>
+      apiRequest<IncidentResponse>(apiEndpoints.incidents.status(id), {
         method: "PATCH",
-        body: payload,
+        body: { status },
       }),
   },
   mfs: {

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     SSH_USERNAME: str = ""
     SSH_REMOTE_DIR: str = ""
     SSH_CLIENT_KEY_PATH: Path | None = None
+    SSH_PASSWORD: str | None = None
     SSH_KNOWN_HOSTS: Path | None = None
     SSH_MOCK: bool = False
 
