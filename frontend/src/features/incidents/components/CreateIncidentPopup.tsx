@@ -67,6 +67,21 @@ interface Props {
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const currentMonthIso = () => `${new Date().toISOString().slice(0, 7)}-01`;
 
+const draftKey = (taskId?: number) => `incident_draft_${taskId ?? "new"}`;
+
+const readDraft = (taskId?: number): IncidentCreate | null => {
+    try {
+        const raw = localStorage.getItem(draftKey(taskId));
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
+const clearDraft = (taskId?: number) => {
+    localStorage.removeItem(draftKey(taskId));
+};
+
 const emptyForm: IncidentCreate = {
     task_id: 0,
     control_type: "",
@@ -101,6 +116,11 @@ export function CreateIncidentPopup({ incidentId, taskId, task, onClose, onSaved
     const isTaskLocked = !isEdit && taskId != null;
     const [tasks, setTasks] = useState<Task[]>([]);
     const [form, setForm] = useState<IncidentCreate>(() => {
+        if (isEdit) return emptyForm;
+
+        const draft = readDraft(taskId);
+        if (draft) return draft;
+
         if (!isTaskLocked) return emptyForm;
         return {
             ...emptyForm,
@@ -160,6 +180,15 @@ export function CreateIncidentPopup({ incidentId, taskId, task, onClose, onSaved
         }).finally(() => setLoading(false));
     }, [incidentId, isEdit]);
 
+    useEffect(() => {
+        if (isEdit) return;
+        try {
+            localStorage.setItem(draftKey(taskId), JSON.stringify(form));
+        } catch {
+            // ignore storage errors (e.g. quota exceeded, private mode)
+        }
+    }, [form, isEdit, taskId]);
+
     const update = (patch: Partial<IncidentCreate>) => setForm(prev => ({ ...prev, ...patch }));
 
     const handleSubmit = async () => {
@@ -216,6 +245,7 @@ export function CreateIncidentPopup({ incidentId, taskId, task, onClose, onSaved
                 await api.incidents.update(incidentId!, updatePayload);
             } else {
                 await api.incidents.create(payload);
+                clearDraft(taskId);
             }
             onSaved();
             onClose();
