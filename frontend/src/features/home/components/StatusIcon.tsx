@@ -14,7 +14,7 @@ const STATUS_MAP: Record<string, { name: string; color: string; textColor: strin
 export function StatusIcon({ status, deadline }: StatusProps) {
     const upper = status.toUpperCase()
     const isOverdue =
-        (upper === "NOT_STARTED" || upper === "IN_PROGRESS") &&
+        (upper === "NOT_STARTED") &&
         deadline !== null &&
         new Date(deadline) < new Date()
 
