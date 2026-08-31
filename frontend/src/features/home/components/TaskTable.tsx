@@ -9,8 +9,19 @@ import { renderTime, calculateTime, diffMinutes } from "@/features/home/hooks/Ca
 import { BsEmojiExpressionless, BsEmojiSmile, BsEmojiGrin, BsEmojiFrown} from "react-icons/bs";
 import { Modal } from "@/components/Modal";
 import { CreateIncidentPopup } from "@/features/incidents/components/CreateIncidentPopup";
+import { MdNearbyError } from "react-icons/md";
 
 const PAGE_SIZE = 20;
+const DASHBOARD_ERROR_NOTIFIED_KEY = "dashboard_error_notified_task_ids";
+
+const getDashboardErrorNotifiedIds = (): number[] => {
+    try {
+        const raw = localStorage.getItem(DASHBOARD_ERROR_NOTIFIED_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+};
 
 interface Props {
     onTotalChange?: (total: number) => void;
@@ -38,6 +49,10 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
     const sentinelRef = useRef<HTMLDivElement>(null);
     const mountedRef = useRef(true);
     const [incidentTask, setIncidentTask] = useState<TaskWithControl | null>(null);
+    const [dashboardErrorSendingId, setDashboardErrorSendingId] = useState<number | null>(null);
+    const [dashboardErrorNotifiedIds, setDashboardErrorNotifiedIds] = useState<Set<number>>(
+        () => new Set(getDashboardErrorNotifiedIds())
+    );
 
     useEffect(() => {
         mountedRef.current = true;
@@ -104,6 +119,30 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
         }
     };
 
+
+    const handleDashboardError = async (item: TaskWithControl) => {
+        if (dashboardErrorSendingId !== null || dashboardErrorNotifiedIds.has(item.id)) return;
+
+        setDashboardErrorSendingId(item.id);
+        try {
+            // @ts-ignore
+            await api.notifications.createTaskErrorNotification({
+                id: item.id,
+                title: item.control.name,
+                dashboard_url: item.control?.dashboard_url ?? "",
+            });
+
+            setDashboardErrorNotifiedIds(prev => {
+                const next = new Set(prev).add(item.id);
+                localStorage.setItem(DASHBOARD_ERROR_NOTIFIED_KEY, JSON.stringify(Array.from(next)));
+                return next;
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDashboardErrorSendingId(null);
+        }
+    };
 
     useEffect(() => {
         const el = sentinelRef.current;
@@ -191,6 +230,13 @@ export function TaskTable({ onTotalChange, filters, search, onView }: Props) {
                                     variant="outline"
                                     className="p-1.5"
                                     onClick={() => onView?.(String(item.id))}
+                                />
+                                <Button
+                                    icon={<MdNearbyError size={16}/>}
+                                    variant="outline"
+                                    className="p-1.5"
+                                    disabled={dashboardErrorSendingId === item.id || dashboardErrorNotifiedIds.has(item.id)}
+                                    onClick={() => handleDashboardError(item)}
                                 />
                             </div>
                         </td>

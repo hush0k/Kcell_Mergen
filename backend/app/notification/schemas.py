@@ -100,3 +100,9 @@ class NotificationReadResponse(BaseModel):
 
 class UnreadCountResponse(BaseModel):
     unread_count: int
+
+
+class ErrorNotificationCreate(BaseModel):
+    id: int
+    title: str
+    dashboard_url: str

@@ -18,9 +18,8 @@ from app.notification.schemas import (
     NOTE_LINK_RE,
     INCIDENT_LINK_RE,
     NotificationCreate,
-    NotificationRecipientResponse,
     NotificationsList,
-    UnreadCountResponse,
+    UnreadCountResponse, ErrorNotificationCreate,
 )
 from app.user.model import User
 from app.user.repository import UserRepository
@@ -379,4 +378,44 @@ class NotificationService:
         )
 
         return await self.repo.create(notification)
+
+
+    async def create_error_with_dashboard(self, error_content: ErrorNotificationCreate, current_user: User) -> Notification:
+        admin_emails = await self.user_repo.get_admin_emails()
+        recipients = ";".join(admin_emails)
+
+        html_content = f"""
+            <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 640px; margin: 0 auto; background: #f4f6f8; padding: 24px;">
+              <div style="background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                  <div style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></div>
+                  <span style="font-size: 13px; font-weight: 600; color: #ef4444; text-transform: uppercase; letter-spacing: 0.5px;">Ошибка на дашборде</span>
+                </div>
+        
+                <h2 style="margin: 0 0 4px; font-size: 18px; color: #111827;">{error_content.title}</h2>
+                <p style="margin: 0 0 16px; font-size: 13px; color: #9ca3af;">
+                  Отправитель: <strong>{current_user.first_name} {current_user.last_name}</strong>
+                </p>
+        
+                <div style="margin: 20px 0 0;">
+                  <a href="{error_content.dashboard_url}" style="display:inline-block;padding:10px 
+                  18px;background:#2563eb;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;border-radius:6px;">Перейти к дашборду</a>
+                </div>
+        
+                <p style="margin: 16px 0 0; font-size: 12px; color: #9ca3af;">CODE:DASH</p>
+              </div>
+            </div>
+        """
+
+        notification = NotificationCreate(
+            sender=current_user.email,
+            title=f"Ошибка с задачей: {error_content.title} CODE:DASH",
+            html_content=html_content,
+            recipients_email=recipients,
+            error_message=None
+        )
+
+        return await self.repo.create(notification)
+
+
 

@@ -32,15 +32,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     handleIncoming: (data) => {
         if ("type" in data) {
-            // task-claimed event, not a new notification for this list
             return;
         }
 
         set({ unreadCount: data.unread_count });
 
-        // The WS payload only carries id/title/sender/unread_count — fetch the real
-        // record instead of faking one, so every field (html_content, created_at, etc.)
-        // is accurate from the moment it appears.
         api.notifications.list({ page: 1, limit: 1 }).then((res) => {
             const fresh = res.notifications.find((n) => n.notification_id === data.notification_id);
             if (!fresh) return;

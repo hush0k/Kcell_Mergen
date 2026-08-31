@@ -23,6 +23,7 @@ from app.task.router import router as task_router
 from app.tele2.SSHService import SSHService
 from app.tele2.router import router as tele2_router
 from app.user.router import router as user_router
+from app.number_information.router import router as number_information_router
 from app.vacation_schedule.router import router as vacation_schedule_router
 
 logging.basicConfig(level=logging.INFO)
@@ -72,6 +73,7 @@ app.include_router(me_note_router)
 app.include_router(directory_router)
 app.include_router(attachments_router)
 app.include_router(tele2_router)
+app.include_router(number_information_router)
 
 
 @app.get("/api/public/config")

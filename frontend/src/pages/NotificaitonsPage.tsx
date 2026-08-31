@@ -37,12 +37,15 @@ const formatDate = (iso: string) => {
 const SELECTED_NOTIFICATION_KEY = "notifications:selectedId";
 const SYSTEM_MARKER = "CODE:843";
 const INCIDENT_MARKER = "CODE:INC";
+const DASHBOARD_ERROR_MARKER = "CODE:DASH";
 
 const isSystemNotification = (item: NotificationRecipient) =>
-    !!item.notification.title?.includes(SYSTEM_MARKER) || !!item.notification.title?.includes(INCIDENT_MARKER);
+    !!item.notification.title?.includes(SYSTEM_MARKER)
+    || !!item.notification.title?.includes(INCIDENT_MARKER)
+    || !!item.notification.title?.includes(DASHBOARD_ERROR_MARKER);
 
 const stripSystemMarker = (title: string | null) =>
-    title?.replace(SYSTEM_MARKER, "").replace(INCIDENT_MARKER, "").trim() ?? title;
+    title?.replace(SYSTEM_MARKER, "").replace(INCIDENT_MARKER, "").replace(DASHBOARD_ERROR_MARKER, "").trim() ?? title;
 
 type NotificationsTab = "all" | "unread" | "system";
 

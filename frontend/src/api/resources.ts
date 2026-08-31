@@ -328,6 +328,11 @@ export const api = {
         `${apiEndpoints.notifications.systemNotification(Number(noteId))}?edit_mode=${editMode}`,
         { method: "POST" },
       ),
+    createTaskErrorNotification: (payload: { id: number; title: string; dashboard_url: string }) =>
+      apiRequest<NotificationResponse>(apiEndpoints.notifications.createTaskErrorNotification, {
+        method: "POST",
+        body: payload,
+      }),
   },
     meNote: {
         list: (

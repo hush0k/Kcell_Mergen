@@ -13,7 +13,7 @@ from app.notification.model import Notification
 from app.notification.schemas import (
     NotificationRecipientResponse,
     NotificationReadResponse,
-    UnreadCountResponse, NotificationResponse, NotificationCreate, NotificationsList,
+    UnreadCountResponse, NotificationResponse, NotificationCreate, NotificationsList, ErrorNotificationCreate,
 )
 from app.notification.service import NotificationService
 from app.user.model import User
@@ -107,9 +107,6 @@ async def websocket_endpoint(
     async with AsyncSessionLocal() as db:
         user = await get_current_user_by_token(token, db)
     if not user:
-        # Must accept before closing so the browser actually receives the
-        # 1008 close code instead of seeing a bare HTTP 403 handshake
-        # rejection (which JS reports as an opaque code 1006 close).
         await websocket.accept()
         await websocket.close(code=1008)
         return
@@ -128,3 +125,11 @@ async def get_notification(
         current_user: User = Depends(get_current_user),
 ):
     return await service.get_notification(notification_id, current_user.id)
+
+@router.post("/create_task_error_notification", response_model=NotificationResponse)
+async def create_task_error_notification(
+        service: ServiceDep,
+        notification_in: ErrorNotificationCreate,
+        current_user: User = Depends(get_current_user),
+) -> Notification:
+    return await service.create_error_with_dashboard(notification_in, current_user)

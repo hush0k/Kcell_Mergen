@@ -62,6 +62,7 @@ export const apiEndpoints = {
       `/notifications/${id}/end_notificaiton_task`,
     systemNotification: (noteId: number) =>
       `/notifications/system-notification/${noteId}/note`,
+    createTaskErrorNotification: "/notifications/create_task_error_notification",
     websocket: "/notifications/ws",
   },
     meNote: {
