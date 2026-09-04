@@ -17,3 +17,9 @@ class LogService:
     async def get_log(self, log_id: int) -> NumberInformationLogin:
         log = await self.db.execute(select(NumberInformationLogin).where(NumberInformationLogin.id==log_id))
         return log.scalar_one_or_none()
+
+    async def list_logs(self) -> list[NumberInformationLogin]:
+        result = await self.db.execute(
+            select(NumberInformationLogin).order_by(NumberInformationLogin.id.desc())
+        )
+        return list(result.scalars().all())

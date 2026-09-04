@@ -1,5 +1,6 @@
 import asyncio
 from collections import deque
+from datetime import date, timedelta
 
 from app.number_information.LogService import LogService
 from app.number_information.field_graph import FIELD_TO_TABLE, TABLE_GRAPH
@@ -7,6 +8,15 @@ from app.number_information.repository import NumberInformationRepository
 from app.number_information.schemas import NumberInformationBulkResponse, NumberInformationResponse
 
 ROOT = "NUMBER_SETS"
+PAYMENTS_TABLE = "PAYMENTS"
+PAYMENTS_DATE_COLUMN = "PAY_DATE"
+PAYMENTS_SUM_COLUMN = "AMOUNT_$"
+
+
+def default_payment_period() -> tuple[date, date]:
+    """Default period for the payment sum: the last 12 months."""
+    today = date.today()
+    return today - timedelta(days=365), today
 
 def resolve_target_tables(requested_fields: list[str]) -> set[str]:
     tables: set[str] = set()
@@ -93,14 +103,22 @@ class GraphResolver:
         self._log_service = log_service
 
     async def resolve_fields(
-            self, phone_number: str, requested_fields: list[str]
+            self,
+            phone_number: str,
+            requested_fields: list[str],
+            payment_date_from: date | None = None,
+            payment_date_to: date | None = None,
     ) -> NumberInformationResponse:
+        sum_payments = "payment_amount" in requested_fields
         target_tables = resolve_target_tables(requested_fields)
         plan = build_execution_plan(target_tables)
 
         fetched_ids: dict[str, int | str] = {}
         output: dict[str, str | int | None] = {alias: None for alias in requested_fields}
         executed_sql: list[str] = []
+
+        if payment_date_from is None and payment_date_to is None:
+            payment_date_from, payment_date_to = default_payment_period()
 
         for step_index, table_name in enumerate(plan):
             node = TABLE_GRAPH[table_name]
@@ -115,6 +133,21 @@ class GraphResolver:
                 where_value = fetched_ids.get(parent_table)
                 if where_value is None:
                     continue
+
+            if table_name == PAYMENTS_TABLE and sum_payments:
+                row = await self._repo.fetch_one_sum(
+                    table_name=real_table,
+                    where_column=where_column,
+                    where_value=where_value,
+                    sum_column=PAYMENTS_SUM_COLUMN,
+                    date_column=PAYMENTS_DATE_COLUMN,
+                    date_from=payment_date_from,
+                    date_to=payment_date_to,
+                    log_sink=executed_sql,
+                )
+                if row is not None:
+                    output["payment_amount"] = row.get(PAYMENTS_SUM_COLUMN)
+                continue
 
             select_columns = list(node["fields"].values())
             for edge in node["fk"]:
@@ -154,8 +187,15 @@ class GraphResolver:
         return NumberInformationResponse(**output)
 
     async def resolve_fields_bulk(
-            self, phone_numbers: list[str], requested_fields: list[str]
+            self,
+            phone_numbers: list[str],
+            requested_fields: list[str],
+            payment_date_from: date | None = None,
+            payment_date_to: date | None = None,
     ) -> NumberInformationBulkResponse:
+        sum_payments = "payment_amount" in requested_fields
+        if payment_date_from is None and payment_date_to is None:
+            payment_date_from, payment_date_to = default_payment_period()
         target_tables = resolve_target_tables(requested_fields)
         plan = build_execution_plan(target_tables)
         levels = build_execution_levels(plan)
@@ -200,6 +240,29 @@ class GraphResolver:
             async def run_step(table_name: str, node: dict, where_column: str,
                                 value_to_phones: dict[int | str, list[str]]):
                 real_table = node.get("table_name", table_name)
+
+                sample_value = None
+                for value, phones in value_to_phones.items():
+                    if sample_phone in phones:
+                        sample_value = value
+                        break
+
+                sample_log: list[str] = []
+
+                if table_name == PAYMENTS_TABLE and sum_payments:
+                    rows = await self._repo.fetch_many_sum(
+                        table_name=real_table,
+                        where_column=where_column,
+                        where_values=list(value_to_phones.keys()),
+                        sum_column=PAYMENTS_SUM_COLUMN,
+                        date_column=PAYMENTS_DATE_COLUMN,
+                        date_from=payment_date_from,
+                        date_to=payment_date_to,
+                        log_sample_value=sample_value,
+                        log_sink=sample_log,
+                    )
+                    return table_name, where_column, value_to_phones, rows, sample_log, True
+
                 select_columns = list(node["fields"].values())
                 for edge in node["fk"]:
                     if edge["table"] in plan and edge["column"] not in select_columns:
@@ -209,13 +272,6 @@ class GraphResolver:
                 if where_column not in select_columns:
                     select_columns.append(where_column)
 
-                sample_value = None
-                for value, phones in value_to_phones.items():
-                    if sample_phone in phones:
-                        sample_value = value
-                        break
-
-                sample_log: list[str] = []
                 rows = await self._repo.fetch_many(
                     table_name=real_table,
                     where_column=where_column,
@@ -226,18 +282,29 @@ class GraphResolver:
                     log_sample_value=sample_value,
                     log_sink=sample_log,
                 )
-                return table_name, where_column, value_to_phones, rows, sample_log
+                return table_name, where_column, value_to_phones, rows, sample_log, False
 
             step_results = await asyncio.gather(
                 *(run_step(*step) for step in step_inputs)
             )
 
             matched_by_table: dict[str, set[str]] = {}
-            for table_name, where_column, value_to_phones, rows, sample_log in step_results:
+            for table_name, where_column, value_to_phones, rows, sample_log, is_sum in step_results:
                 executed_sql.extend(sample_log)
 
                 node = TABLE_GRAPH[table_name]
                 matched_phones: set[str] = set()
+
+                if is_sum:
+                    for row in rows:
+                        key_value = row.get(where_column)
+                        phones_for_row = value_to_phones.get(key_value, [])
+                        for phone in phones_for_row:
+                            matched_phones.add(phone)
+                            outputs[phone]["payment_amount"] = row.get(PAYMENTS_SUM_COLUMN)
+                    matched_by_table[table_name] = matched_phones
+                    continue
+
                 for row in rows:
                     key_value = row.get(where_column)
                     phones_for_row = value_to_phones.get(key_value, [])

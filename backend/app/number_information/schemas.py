@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class NumberInformationLoginResponse(BaseModel):
     id: int
     sql_request: str | None
-
+    created_at: datetime
     model_config = {"from_attributes": True}
 
 class NumberInformationResponse(BaseModel):
@@ -61,12 +61,16 @@ class NumberInformationResponse(BaseModel):
 class NumberInformationRequest(BaseModel):
     phone_number: str
     fields: list[str]
+    payment_date_from: date | None = None
+    payment_date_to: date | None = None
 
 MAX_BULK_PHONE_NUMBERS = 20_000
 
 class NumberInformationBulkRequest(BaseModel):
     phone_numbers: list[str] = Field(min_length=1, max_length=MAX_BULK_PHONE_NUMBERS)
     fields: list[str]
+    payment_date_from: date | None = None
+    payment_date_to: date | None = None
 
 class NumberInformationBulkResponse(BaseModel):
     results: list[NumberInformationResponse]
