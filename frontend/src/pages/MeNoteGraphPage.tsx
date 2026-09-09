@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ForceGraph2D, { type ForceGraphMethods, type NodeObject } from "react-force-graph-2d";
+// @ts-ignore
 import { forceCollide } from "d3-force";
 import { api } from "@/api/resources";
 import { useNoteSelection } from "@/contexts/NoteSelectionContext";

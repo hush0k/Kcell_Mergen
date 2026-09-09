@@ -87,4 +87,16 @@ export const apiEndpoints = {
         byId: (id: number) => `/directory/${id}`,
         withFiles: (id: number) => `/directory/${id}/with-files`,
     },
+    reports: {
+        list1391Excel: "/reports/list-1391/excel",
+        mfsBlacklistExcel: "/reports/mfs-blacklist/excel",
+        ntBlockedExcel: "/reports/nt-blocked/excel",
+        top10CountriesExcel: "/reports/top10-countries/excel",
+    },
+    numberInformation: {
+        getInfo: "/number_information/get-info",
+        getInfoBulk: "/number_information/get-info-bulk",
+        logs: "/number_information/logs",
+        logById: (id: number) => `/number_information/logs/${id}`,
+    },
 } as const;

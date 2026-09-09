@@ -8,6 +8,8 @@ import { Tele2Page } from "@/pages/Tele2Page"
 import { NotificaitonsPage } from "@/pages/NotificaitonsPage"
 import { ReportsPage } from "@/pages/ReportsPage"
 import { VacationPage } from "@/pages/VacationPage"
+import { NumberInformationPage } from "@/pages/NumberInformationPage"
+import { NumberInformationSqlPage } from "@/pages/NumberInformationSqlPage"
 import { MergenNoteMainPage } from "@/pages/MergenNoteMainPage"
 import { MeNoteGraphPage } from "@/pages/MeNoteGraphPage"
 import { ProfilePage } from "@/pages/ProfilePage"
@@ -27,6 +29,10 @@ export function App() {
                     path="/force-change-password"
                     element={<PrivateRoute><ForceChangePasswordPage /></PrivateRoute>}
                 />
+                <Route
+                    path="/numberInformation/sql/:id"
+                    element={<PrivateRoute><NumberInformationSqlPage /></PrivateRoute>}
+                />
                 <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
                     <Route path="/home" element={<HomePage />} />
                     <Route path="/incidents" element={<IncidentsPage />} />
@@ -37,6 +43,7 @@ export function App() {
                     <Route path="/vacation" element={<VacationPage />} />
                     <Route path="/controllers" element={<ControllerPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/numberInformation" element={<NumberInformationPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                 </Route>
                 <Route element={<PrivateRoute><NoteLayout /></PrivateRoute>}>

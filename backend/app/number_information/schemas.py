@@ -24,7 +24,7 @@ class NumberInformationResponse(BaseModel):
     client_status: str | None = None
     comment_about_client: str | None = None
     privilege_sign: bool | None = None
-    activation_date: date | None = None
+    activation_date: datetime | None = None
     subscriber_activation_date: date | None = None
     imsi: str | None = None
     imsi_2: str | None = None
@@ -35,7 +35,7 @@ class NumberInformationResponse(BaseModel):
     sim_card_status_historical: str | None = None
     sim_card_expiration_date: date | None = None
     diller: str | None = None
-    diller_number: str | None = None
+    diller_number: int | None = None
     registration_chanel: str | None = None
     subscriber_status: str | None = None
     lock_calls: bool | None = None

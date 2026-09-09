@@ -37,6 +37,7 @@ TABLE_GRAPH = {
             "subscriber_activation_date": "ACTIVATION_DATE",
             "subscriber_close_date": "CLOSE_DATE",
             "lock_calls": "LOCK_CALLS",
+            "activation_date": "ACTIVATION_DATE",
         },
         "fk": [
             {"column": "CLNT_CLNT_ID", "table": "CLIENTS"},
@@ -135,7 +136,7 @@ TABLE_GRAPH = {
         "pk": "CLNT_ID",
         "fields": {
             "privilege_sign": "PRIVILEGE_SIGN",
-            "activation_date": "ACTIVATION_DATE",
+
         },
         "fk": [
             {"column": "CLNT_ID", "table": "CLIENT_HISTORIES"},

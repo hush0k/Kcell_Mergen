@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user
 from app.db.database import get_db
 from app.number_information.LogService import LogService
 from app.number_information.repository import NumberInformationRepository
@@ -15,9 +16,10 @@ from app.number_information.schemas import (
     NumberInformationRequest,
 )
 from app.number_information.service import OracleClientLookupService
+from app.user.model import User
 
 router = APIRouter(
-    prefix="/number_information",
+    prefix="/api/v1/number_information",
     tags=["Number Information"],
 )
 
@@ -38,13 +40,14 @@ def get_log_service(db: Annotated[AsyncSession, Depends(get_db)]) -> LogService:
 
 
 LogServiceDep = Annotated[LogService, Depends(get_log_service)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.post("/get-info", response_model=NumberInformationResponse)
-async def get_number_information(request: NumberInformationRequest, service: ServiceDep) -> NumberInformationResponse:
+async def get_number_information(_: CurrentUser, request: NumberInformationRequest, service: ServiceDep) -> NumberInformationResponse:
     return await service.get_client_data(request)
 
 @router.post("/get-info-bulk")
-async def get_number_information_bulk(request: NumberInformationBulkRequest, service: ServiceDep) -> StreamingResponse:
+async def get_number_information_bulk(_: CurrentUser, request: NumberInformationBulkRequest, service: ServiceDep) -> StreamingResponse:
     buffer = await service.export_clients_data_excel(request)
     return StreamingResponse(
         buffer,
@@ -54,12 +57,12 @@ async def get_number_information_bulk(request: NumberInformationBulkRequest, ser
 
 
 @router.get("/logs", response_model=list[NumberInformationLoginResponse])
-async def list_number_information_logs(log_service: LogServiceDep) -> list[NumberInformationLoginResponse]:
+async def list_number_information_logs(_: CurrentUser, log_service: LogServiceDep) -> list[NumberInformationLoginResponse]:
     return await log_service.list_logs()
 
 
 @router.get("/logs/{log_id}", response_model=NumberInformationLoginResponse)
-async def get_number_information_log(log_id: int, log_service: LogServiceDep) -> NumberInformationLoginResponse:
+async def get_number_information_log(_: CurrentUser, log_id: int, log_service: LogServiceDep) -> NumberInformationLoginResponse:
     log = await log_service.get_log(log_id)
     if log is None:
         raise HTTPException(status_code=404, detail="Log not found")

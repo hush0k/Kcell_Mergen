@@ -32,4 +32,8 @@ async def create_schema() -> None:
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise

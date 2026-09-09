@@ -12,6 +12,7 @@ class LogService:
         log = NumberInformationLogin(sql_request=sql_request)
         self.db.add(log)
         await self.db.flush()
+        await self.db.commit()
         return log.id
 
     async def get_log(self, log_id: int) -> NumberInformationLogin:

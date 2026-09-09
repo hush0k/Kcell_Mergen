@@ -51,6 +51,10 @@ import type {
   VacationStatus,
   VacationType,
 } from "@/types/vacation";
+import type {
+    NumberInformationResult,
+    NumberInformationLogEntry,
+} from "@/features/numberInformation/types";
 
 const crud = <TEntity, TCreate = ApiRecord, TUpdate = Partial<TCreate>>(
   root: string,
@@ -450,5 +454,80 @@ export const api = {
             apiRequest<null>(apiEndpoints.directory.byId(id), { method: "DELETE" }),
         getWithFiles: (id: Id, opts?: { signal?: AbortSignal }) =>
             apiRequest<DirectoryWithFilesResponse>(apiEndpoints.directory.withFiles(id), { signal: opts?.signal }),
+    },
+    reports: {
+        downloadExcel: async (
+            endpoint: string,
+            filename: string,
+            params?: { start_time?: string; end_time?: string },
+        ) => {
+            const searchParams = new URLSearchParams();
+            if (params?.start_time) searchParams.set("start_time", params.start_time);
+            if (params?.end_time) searchParams.set("end_time", params.end_time);
+            const query = searchParams.toString();
+
+            const accessToken = tokenStorage.getAccessToken();
+            const response = await fetch(`${API_URL}${endpoint}${query ? `?${query}` : ""}`, {
+                headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+            });
+            if (!response.ok) {
+                throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        },
+    },
+    numberInformation: {
+        getInfo: (payload: { phone_number: string; fields: string[] }) =>
+            apiRequest<NumberInformationResult>(apiEndpoints.numberInformation.getInfo, {
+                method: "POST",
+                body: payload,
+            }),
+        listLogs: (opts?: { signal?: AbortSignal }) =>
+            apiRequest<NumberInformationLogEntry[]>(apiEndpoints.numberInformation.logs, {
+                signal: opts?.signal,
+            }),
+        getLog: (id: number, opts?: { signal?: AbortSignal }) =>
+            apiRequest<NumberInformationLogEntry>(apiEndpoints.numberInformation.logById(id), {
+                signal: opts?.signal,
+            }),
+        downloadExcelBulk: async (
+            payload: {
+                phone_numbers: string[];
+                fields: string[];
+                payment_date_from?: string;
+                payment_date_to?: string;
+            },
+            filename = "number_information.xlsx",
+        ) => {
+            const accessToken = tokenStorage.getAccessToken();
+            const response = await fetch(`${API_URL}${apiEndpoints.numberInformation.getInfoBulk}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+                throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        },
     },
 };

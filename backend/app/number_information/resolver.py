@@ -67,14 +67,6 @@ def _parent_of(table_name: str) -> str | None:
 
 
 def build_execution_levels(plan: list[str]) -> list[list[str]]:
-    """Group a flat execution plan into "waves" that can run concurrently.
-
-    A table can only be queried once its parent's row has been fetched (its
-    FK value is needed), but siblings hanging off the same parent (e.g.
-    CLIENT_TYPES/CLIENT_STATUSES/CLIENT_CATS/CLIENT_PAY_TYPES, all children
-    of CLIENT_HISTORIES) don't depend on each other and can be queried in
-    the same wave via asyncio.gather instead of one round-trip at a time.
-    """
     plan_set = set(plan)
     depth: dict[str, int] = {}
     for table_name in plan:
@@ -128,9 +120,8 @@ class GraphResolver:
                 where_column = node["key_column"]
                 where_value = phone_number
             else:
-                parent_table = plan[step_index - 1]
                 where_column = node["fk_in"]
-                where_value = fetched_ids.get(parent_table)
+                where_value = fetched_ids.get(table_name)
                 if where_value is None:
                     continue
 
@@ -222,11 +213,10 @@ class GraphResolver:
                     for phone in alive:
                         value_to_phones.setdefault(phone, []).append(phone)
                 else:
-                    parent_table = _parent_of(table_name)
                     where_column = node["fk_in"]
                     value_to_phones = {}
                     for phone in alive:
-                        value = fetched_ids[phone].get(parent_table)
+                        value = fetched_ids[phone].get(table_name)
                         if value is None:
                             continue
                         value_to_phones.setdefault(value, []).append(phone)
@@ -284,9 +274,8 @@ class GraphResolver:
                 )
                 return table_name, where_column, value_to_phones, rows, sample_log, False
 
-            step_results = await asyncio.gather(
-                *(run_step(*step) for step in step_inputs)
-            )
+
+            step_results = [await run_step(*step) for step in step_inputs]
 
             matched_by_table: dict[str, set[str]] = {}
             for table_name, where_column, value_to_phones, rows, sample_log, is_sum in step_results:

@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { PiNotePencilFill } from "react-icons/pi";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { isAdminRole } from "@/features/admin/utils";
+import { FaDatabase } from "react-icons/fa6";
 
 
 export function Sidebar() {
@@ -31,6 +32,7 @@ export function Sidebar() {
         { name: "Tele2", icon: <FaSimCard size={18}/>, isOpen: false, link: 'tele2' },
         { name: "Отпуски", icon: <MdOutlineHolidayVillage size={18}/>, isOpen: false, link: 'vacation' },
         { name: "Отчеты", icon: <TbReportSearch size={18}/>, isOpen: false, link: 'reports' },
+        { name: "Информация о номере", icon: <FaDatabase />, isOpen: false, link: 'numberInformation' },
         ...(isAdminRole(me?.role)
             ? [{ name: "Админ", icon: <MdAdminPanelSettings size={18}/>, isOpen: false, link: 'admin' }]
             : []),
