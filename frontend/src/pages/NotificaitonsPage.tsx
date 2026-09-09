@@ -243,9 +243,9 @@ export function NotificaitonsPage() {
         successIds.forEach(() => decrementUnread());
     };
 
-    const visibleNotifications = notifications.filter(item =>
-        tab === "system" ? isSystemNotification(item) : !isSystemNotification(item)
-    );
+    const visibleNotifications = tab === "system"
+        ? notifications.filter(isSystemNotification)
+        : notifications;
     const systemTotal = notifications.filter(isSystemNotification).length;
 
     return (
